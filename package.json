@@ -1,0 +1,7 @@
+{
+  "name": "eth-deployer",
+  "packageManager": "yarn@4.9.2",
+  "workspaces": [
+    "packages/*"
+  ]
+}
