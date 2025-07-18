@@ -1,5 +1,5 @@
 // Test script for contract deployment
-import { ContractService } from './src/services/contract.service';
+import { ContractService } from './services/contract.service';
 
 async function testDeployment() {
   console.log('🧪 Testing contract deployment...');
