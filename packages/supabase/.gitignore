@@ -8,6 +8,9 @@ build
 # env files
 .env
 .env.local
+.env.development
+.env.staging
+.env.production
 .env.development.local
 .env.test.local
 .env.production.local

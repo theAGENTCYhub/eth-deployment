@@ -6,3 +6,8 @@
 .env.keys
 .env.local
 .env.*.local
+.env.development
+.env.staging
+.env.production
+.env.development.local
+.env

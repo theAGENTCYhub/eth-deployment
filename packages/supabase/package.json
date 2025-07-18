@@ -1,19 +1,63 @@
 {
-  "name": "supabase",
+  "name": "@eth-deployer/supabase",
+  "version": "1.0.0",
+  "description": "Supabase database operations and client for ETH Deployer",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "packageManager": "yarn@4.9.2",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "import": "./dist/client.js",
+      "require": "./dist/client.js"
+    },
+    "./types": {
+      "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
+      "require": "./dist/types.js"
+    }
+  },
   "dependencies": {
     "@supabase/supabase-js": "^2.51.0",
-    "supabase": "2.30.4"
+    "dotenv": "^17.2.0",
+    "zod": "^3.22.4"
   },
   "devDependencies": {
+    "@types/node": "^24.0.13",
+    "nodemon": "^3.1.10",
     "ts-node": "^10.9.2",
     "typescript": "^5.8.3"
   },
   "scripts": {
     "build": "tsc",
+    "dev": "ts-node src/index.ts",
     "start": "node dist/index.js",
-    "dev": "nodemon --exec ts-node src/index.ts"
-  }
+    "type-check": "tsc --noEmit",
+    "generate-types": "supabase gen types typescript --local > src/types/database.types.ts",
+    "db:start": "supabase start",
+    "db:stop": "supabase stop",
+    "db:reset": "supabase db reset",
+    "db:push": "supabase db push",
+    "db:pull": "supabase db pull",
+    "db:migrate": "supabase migration up",
+    "db:new-migration": "supabase migration new",
+    "studio": "supabase studio"
+  },
+  "files": [
+    "dist/**/*",
+    "README.md"
+  ],
+  "keywords": [
+    "supabase",
+    "database",
+    "eth-deployer",
+    "typescript"
+  ],
+  "author": "AGENTCY",
+  "license": "MIT"
 }

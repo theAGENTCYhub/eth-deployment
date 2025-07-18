@@ -11,9 +11,9 @@
     "typescript": "^5.8.3"
   },
   "dependencies": {
+    "@eth-deployer/supabase": "workspace:*",
     "dotenv": "^17.2.0",
     "ethers": "5.7.2",
-    "supabase": "workspace:*",
     "telegraf": "^4.16.3"
   },
   "scripts": {
