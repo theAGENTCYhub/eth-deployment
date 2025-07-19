@@ -18,6 +18,7 @@ export interface ContractInfo {
     deploymentCost: string;
 }
 
+
 export class ContractService {
     private provider = web3Provider.getProvider();
     private wallet = web3Provider.getWallet();
@@ -226,4 +227,6 @@ export class ContractService {
             };
         }
     }
+
 }
+
