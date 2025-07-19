@@ -1,3 +1,5 @@
+-- This is a dummy table for now.
+
 -- Create deployments table
 CREATE TABLE IF NOT EXISTS deployments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
