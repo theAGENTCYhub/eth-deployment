@@ -1,0 +1,45 @@
+{
+  "name": "compilation",
+  "version": "1.0.0",
+  "description": "REST API service for compiling Solidity contracts using Hardhat",
+  "main": "dist/index.js",
+  "types": "types/index.ts",
+  "exports": {
+    ".": {
+      "types": "./types/index.ts",
+      "default": "./dist/index.js"
+    },
+    "./types": "./types/index.ts"
+  },
+  "files": [
+    "dist/",
+    "types/",
+    "src/"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node src/index.ts",
+    "clean": "rm -rf dist",
+    "compile": "yarn build && yarn start",
+    "test": "ts-node test-compilation.ts"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "fs-extra": "^11.2.0",
+    "hardhat": "^2.26.0",
+    "helmet": "^7.1.0",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/cors": "^2.8.17",
+    "@types/express": "^4.17.21",
+    "@types/fs-extra": "^11.0.4",
+    "@types/node": "^20.10.0",
+    "@types/uuid": "^9.0.7",
+    "ts-node": "^10.9.0",
+    "typescript": "^5.3.0"
+  },
+  "packageManager": "yarn@4.9.2"
+}

@@ -1,0 +1,26 @@
+# Compilation API Service Definition
+# Include this in your master docker-compose.yml file
+
+compilation-api:
+  build: 
+    context: ./packages/compilation
+    dockerfile: Dockerfile
+  container_name: compilation-api
+  environment:
+    - NODE_ENV=production
+    - PORT=3001
+    - ALLOWED_ORIGINS=*
+  # Use tmpfs for ephemeral storage (contracts are temporary anyway)
+  tmpfs:
+    - /app/contracts
+    - /app/artifacts
+    - /app/cache
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+    interval: 30s
+    timeout: 10s
+    retries: 3
+    start_period: 40s
+  # No ports exposed - internal service only
+  # Other services can reach it via: http://compilation-api:3001 

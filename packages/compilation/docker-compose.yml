@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  compilation-api:
+    build: .
+    # Remove port mapping for internal-only access
+    # ports:
+    #   - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - ALLOWED_ORIGINS=*
+    # Use tmpfs for better performance in containerized environment
+    tmpfs:
+      - /app/contracts
+      - /app/artifacts
+      - /app/cache
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s 
