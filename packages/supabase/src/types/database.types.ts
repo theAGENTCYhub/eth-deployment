@@ -17,10 +17,10 @@ export type Database = {
     Functions: {
       graphql: {
         Args: {
-          operationName?: string
+          query?: string
           extensions?: Json
           variables?: Json
-          query?: string
+          operationName?: string
         }
         Returns: Json
       }
@@ -73,6 +73,7 @@ export type Database = {
         Row: {
           compilation_error: string | null
           created_at: string | null
+          deployed_with_wallet_id: string | null
           description: string | null
           id: string
           name: string
@@ -86,6 +87,7 @@ export type Database = {
         Insert: {
           compilation_error?: string | null
           created_at?: string | null
+          deployed_with_wallet_id?: string | null
           description?: string | null
           id?: string
           name: string
@@ -99,6 +101,7 @@ export type Database = {
         Update: {
           compilation_error?: string | null
           created_at?: string | null
+          deployed_with_wallet_id?: string | null
           description?: string | null
           id?: string
           name?: string
@@ -110,6 +113,13 @@ export type Database = {
           user_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "contract_instances_deployed_with_wallet_id_fkey"
+            columns: ["deployed_with_wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "contract_instances_template_id_fkey"
             columns: ["template_id"]
@@ -160,18 +170,51 @@ export type Database = {
       }
       deployments: {
         Row: {
+          contract_address: string
+          contract_instance_id: string
+          deployed_at: string | null
+          error_message: string | null
           id: string
-          name: string
+          status: string
+          transaction_hash: string
+          wallet_id: string
         }
         Insert: {
+          contract_address: string
+          contract_instance_id: string
+          deployed_at?: string | null
+          error_message?: string | null
           id?: string
-          name: string
+          status: string
+          transaction_hash: string
+          wallet_id: string
         }
         Update: {
+          contract_address?: string
+          contract_instance_id?: string
+          deployed_at?: string | null
+          error_message?: string | null
           id?: string
-          name?: string
+          status?: string
+          transaction_hash?: string
+          wallet_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "deployments_contract_instance_id_fkey"
+            columns: ["contract_instance_id"]
+            isOneToOne: false
+            referencedRelation: "contract_instances"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deployments_wallet_id_fkey"
+            columns: ["wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       parameter_definitions: {
         Row: {

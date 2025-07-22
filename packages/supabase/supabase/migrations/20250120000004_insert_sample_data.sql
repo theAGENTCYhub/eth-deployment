@@ -23,7 +23,7 @@ INSERT INTO parameter_definitions (
   ('TRANSFER_TAX', 'Transfer Tax (%)', 'Tax on regular transfers', 'number', '0', '{"min": 0, "max": 50}', 12, true),
   ('MAX_TX_AMOUNT_PERCENT', 'Max Transaction Amount (%)', 'Maximum transaction as percentage of total supply', 'number', '2', '{"min": 0.1, "max": 10}', 13, true),
   ('MAX_WALLET_SIZE_PERCENT', 'Max Wallet Size (%)', 'Maximum wallet size as percentage of total supply', 'number', '2', '{"min": 0.1, "max": 10}', 14, true),
-  ('TAX_SWAP_LIMIT_PERCENT', 'Tax Swap Limit (%)', 'Minimum tokens for tax swap as percentage', 'number', '0.2', '{"min": 0.01, "max": 5}', 15, true),
+  ('TAX_SWAP_LIMIT_PERCENT', 'Tax Swap Limit (%)', 'Minimum tokens for tax swap as percentage', 'number', '2', '{"min": 1, "max": 500}', 15, true),
   ('MAX_SWAP_LIMIT_PERCENT', 'Max Swap Limit (%)', 'Maximum swap amount as percentage', 'number', '2', '{"min": 0.1, "max": 10}', 16, true),
   ('TAX_WALLET', 'Tax Wallet', 'Address to receive tax fees', 'address', NULL, '{"pattern": "^0x[a-fA-F0-9]{40}$"}', 17, true);
 

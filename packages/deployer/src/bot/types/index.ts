@@ -10,7 +10,18 @@ export interface NavigationHistoryItem {
 // Session data interface
 export interface SessionData {
   deployState?: {
-    step: 'select_contract' | 'enter_name' | 'enter_symbol' | 'enter_supply' | 'confirm' | 'deploying' | 'parameter_editing' | 'parameter_confirmed' | 'ready_to_deploy' | 'editing_single_parameter';
+    step: 
+      'select_contract' |
+      'enter_name' |
+      'enter_symbol' |
+      'enter_supply' |
+      'confirm' |
+      'deploying' |
+      'parameter_editing' |
+      'parameter_confirmed' |
+      'ready_to_deploy' |
+      'editing_single_parameter' |
+      'wallet_selection';
     contractId?: string;
     tokenName?: string;
     tokenSymbol?: string;
@@ -21,7 +32,8 @@ export interface SessionData {
     parameterValues?: Record<string, string>;
     modifiedSource?: string;
     currentParameter?: string;
-    instanceId?: string; // Add this line
+    instanceId?: string;
+    selectedWalletId?: string;
   };
   // currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts' | 'template_selection' | 'parameter_editing' | 'deployment_confirmation' | 'deployment_progress' | 'deployment_result';
   currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts' | 'template_selection' | 'parameter_editing' | 'deployment_confirmation' | 'deployment_progress' | 'deployment_result'
@@ -29,7 +41,6 @@ export interface SessionData {
   currentScreenData?: any;
   navigationHistory?: NavigationHistoryItem[];
   walletPage?: number;
-  selectedWalletId?: string;
   awaitingNicknameWalletId?: string;
   awaitingImportPrivateKey?: boolean;
 }

@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS contract_instances (
   source_code TEXT NOT NULL, -- The final source code after parameter injection
   status TEXT NOT NULL DEFAULT 'draft', -- 'draft', 'compiling', 'compiled', 'error'
   compilation_error TEXT,
+  deployed_with_wallet_id UUID REFERENCES wallets(id),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
   

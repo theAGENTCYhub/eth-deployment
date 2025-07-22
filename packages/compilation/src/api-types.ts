@@ -197,7 +197,7 @@ export interface CompilationAPIError {
  * Default API configuration
  */
 export const DEFAULT_API_CONFIG: CompilationAPIConfig = {
-  baseUrl: 'http://compilation-api:3001',
+  baseUrl: 'http://localhost:3001',
   timeout: 30000, // 30 seconds
   headers: {
     'Content-Type': 'application/json'

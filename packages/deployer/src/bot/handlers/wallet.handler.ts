@@ -1,6 +1,6 @@
 import { BotScreens } from '../screens';
 import { BotKeyboards } from '../keyboards';
-import { WalletService } from '../../../../supabase/src/services/wallet.service';
+import { WalletService } from '@eth-deployer/supabase'
 import { BotContext } from '../types';
 import { Markup } from 'telegraf';
 
@@ -61,7 +61,7 @@ export class WalletHandler {
       await ctx.reply('Wallet not found.');
       return;
     }
-    ctx.session.selectedWalletId = walletId;
+    if (ctx.session.deployState) ctx.session.deployState.selectedWalletId = walletId;
     const screen = BotScreens.getWalletDetailScreen(wallet);
     const keyboard = BotKeyboards.getWalletDetailKeyboard(walletId);
     await ctx.editMessageText(BotScreens.formatScreen(screen), {

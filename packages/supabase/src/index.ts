@@ -5,6 +5,8 @@ export { DatabaseService } from './services/database.service';
 // Service exports
 export { DeploymentService } from './services/deployment.service';
 export { ContractTemplateService } from './services/contract-template.service';
+export { CompiledArtifactsService } from './services/compiled-artifacts.service';
+export { WalletService } from './services/wallet.service';
 
 // Repository exports
 export { DeploymentsRepository } from './repositories/deployments';

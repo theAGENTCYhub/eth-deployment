@@ -94,7 +94,10 @@ export class BotKeyboards {
       const displayValue = value ? `: ${escapeMarkdown(value)}` : '';
       return [Markup.button.callback(`⚙️ ${escapeMarkdown(param)}${displayValue}`, CallbackManager.generateParamCallback(templateId, param))];
     });
-    
+    // Add wallet selection button
+    buttons.push([
+      Markup.button.callback('Choose Wallet', 'choose_wallet')
+    ]);
     // Add navigation buttons
     buttons.push([
       Markup.button.callback('✅ Confirm All', CallbackManager.generateConfirmCallback(templateId)),

@@ -3,13 +3,13 @@
   "version": "1.0.0",
   "description": "REST API service for compiling Solidity contracts using Hardhat",
   "main": "dist/index.js",
-  "types": "types/index.ts",
+  "types": "dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./types/index.ts",
+      "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
     },
-    "./types": "./types/index.ts"
+    "./start-server": "./dist/start-server.js"
   },
   "files": [
     "dist/",
@@ -18,8 +18,8 @@
   ],
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node src/index.ts",
+    "start": "node dist/start-server.js",
+    "dev": "ts-node src/start-server.ts",
     "clean": "rm -rf dist",
     "compile": "yarn build && yarn start",
     "test": "ts-node test-compilation.ts"

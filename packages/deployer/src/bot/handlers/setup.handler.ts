@@ -143,6 +143,13 @@ Current network: ${process.env.NETWORK || 'Local'}
     bot.action('close_message', WalletHandlers.closeMessage);
     bot.action('wallet_import', WalletHandlers.importWalletPrompt);
 
+    // Wallet selection in deploy flow
+    bot.action('choose_wallet', DeploymentHandler.handleChooseWallet);
+    bot.action(/^select_wallet_(.+)$/, async (ctx) => {
+      const walletId = ctx.match[1];
+      await DeploymentHandler.handleWalletSelection(ctx, walletId);
+    });
+
     // Error handlers
     bot.action('retry', (ctx) => {
       // Retry based on current screen

@@ -13,11 +13,7 @@ export class DeploymentsRepository {
         .insert(data)
         .select()
         .single();
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
+      if (error) return { success: false, error: error.message };
       return { success: true, data: deployment };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
@@ -29,12 +25,8 @@ export class DeploymentsRepository {
       const { data: deployments, error } = await supabase
         .from('deployments')
         .select('*')
-        .order('id', { ascending: false });
-
-      if (error) {
-        return { success: false, error: error.message };
-    }
-
+        .order('deployed_at', { ascending: false });
+      if (error) return { success: false, error: error.message };
       return { success: true, data: deployments };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
@@ -48,12 +40,22 @@ export class DeploymentsRepository {
         .select('*')
         .eq('id', id)
         .single();
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
+      if (error) return { success: false, error: error.message };
       return { success: true, data: deployment };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async getByContractInstanceId(contractInstanceId: string): Promise<{ success: boolean; data?: Deployment[]; error?: string }> {
+    try {
+      const { data: deployments, error } = await supabase
+        .from('deployments')
+        .select('*')
+        .eq('contract_instance_id', contractInstanceId)
+        .order('deployed_at', { ascending: false });
+      if (error) return { success: false, error: error.message };
+      return { success: true, data: deployments };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
@@ -67,11 +69,24 @@ export class DeploymentsRepository {
         .eq('id', id)
         .select()
         .single();
+      if (error) return { success: false, error: error.message };
+      return { success: true, data: deployment };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
 
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
+  async updateStatus(id: string, status: 'pending' | 'success' | 'failed', errorMessage?: string): Promise<{ success: boolean; data?: Deployment; error?: string }> {
+    try {
+      const updateData: Partial<UpdateDeployment> = { status };
+      if (errorMessage) updateData.error_message = errorMessage;
+      const { data: deployment, error } = await supabase
+        .from('deployments')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+      if (error) return { success: false, error: error.message };
       return { success: true, data: deployment };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
@@ -84,86 +99,12 @@ export class DeploymentsRepository {
         .from('deployments')
         .delete()
         .eq('id', id);
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
+      if (error) return { success: false, error: error.message };
       return { success: true };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  }
-
-  // Complex operations that involve business logic
-  async createDeploymentWithTransaction(
-    name: string,
-    transactionHash: string,
-    contractAddress: string
-  ): Promise<{ success: boolean; data?: Deployment; error?: string }> {
-    try {
-      // This is a complex operation that could involve multiple steps
-      const deploymentData = {
-        name,
-        // You could add more fields here when you expand the table
-        // transaction_hash: transactionHash,
-        // contract_address: contractAddress,
-        // status: 'pending'
-      };
-
-      const { data: deployment, error } = await supabase
-        .from('deployments')
-        .insert(deploymentData)
-        .select()
-        .single();
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      return { success: true, data: deployment };
-    } catch (error) {
-      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
-    }
-  }
-
-  async updateDeploymentStatus(
-    id: string, 
-    status: 'pending' | 'success' | 'failed',
-    transactionHash?: string,
-    contractAddress?: string
-  ): Promise<{ success: boolean; data?: Deployment; error?: string }> {
-    try {
-      const updateData: any = {
-        // status, // Add this when you expand the table
-        // updated_at: new Date().toISOString()
-      };
-
-      if (transactionHash) {
-        // updateData.transaction_hash = transactionHash;
-      }
-
-      if (contractAddress) {
-        // updateData.contract_address = contractAddress;
-      }
-
-      const { data: deployment, error } = await supabase
-        .from('deployments')
-        .update(updateData)
-        .eq('id', id)
-        .select()
-        .single();
-
-      if (error) {
-        return { success: false, error: error.message };
-      }
-
-      return { success: true, data: deployment };
     } catch (error) {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
 }
 
-// Export types for external use
 export type { Deployment, CreateDeployment, UpdateDeployment }; 

@@ -4,7 +4,7 @@ import * as hre from 'hardhat';
 import * as fs from 'fs-extra';
 import * as path from 'path';
 import { v4 as uuidv4 } from 'uuid';
-import { CompileRequest, CompileResponse, CompilationArtifact } from './types';
+import { CompileRequest, CompileResponse } from './api-types';
 
 export class CompilerService {
   private contractsDir: string;

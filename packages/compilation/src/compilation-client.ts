@@ -123,8 +123,8 @@ export class CompilationClient implements CompilationAPIClient {
       let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
       
       try {
-        const errorBody = await response.json();
-        if (errorBody.error) {
+        const errorBody = await response.json() as { error?: string };
+        if (errorBody && typeof errorBody === 'object' && 'error' in errorBody && typeof errorBody.error === 'string') {
           errorMessage = errorBody.error;
         }
       } catch {
@@ -141,7 +141,7 @@ export class CompilationClient implements CompilationAPIClient {
     }
 
     try {
-      return await response.json();
+      return await response.json() as T;
     } catch (error) {
       throw {
         type: CompilationAPIErrorType.UNKNOWN_ERROR,
