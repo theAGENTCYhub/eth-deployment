@@ -1,5 +1,6 @@
 import { BotContext, SessionData } from '../types';
 import { BotHandlers } from './index';
+import { WalletHandlers } from './wallet.handler';
 
 export class NavigationHandler {
   /**
@@ -33,6 +34,12 @@ export class NavigationHandler {
       switch (screen) {
         case 'home':
           return await BotHandlers.showHome(ctx);
+        case 'wallet_main':
+          return await WalletHandlers.showWalletMain(ctx);
+        case 'wallet_list':
+          return await WalletHandlers.showWalletList(ctx, data?.page || 0);
+        case 'wallet_detail':
+          return await WalletHandlers.showWalletDetail(ctx, data?.walletId);
         case 'deploy':
           return await BotHandlers.showTemplateSelection(ctx);
         case 'template_selection':

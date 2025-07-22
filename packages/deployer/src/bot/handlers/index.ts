@@ -6,6 +6,7 @@ import { BotKeyboards } from '../keyboards';
 import { web3Provider } from '../../web3/provider';
 import { DeploymentHandler } from './deployment.handler';
 import { NavigationHandler } from './navigation.handler';
+import { WalletHandler } from './wallet.handler';
 
 export class BotHandlers {
   // Home screen handler

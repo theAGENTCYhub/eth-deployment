@@ -215,6 +215,39 @@ export type Database = {
         }
         Relationships: []
       }
+      wallets: {
+        Row: {
+          address: string
+          created_at: string
+          encrypted_private_key: string
+          id: string
+          name: string | null
+          type: string
+          updated_at: string
+          user_id: string | null
+        }
+        Insert: {
+          address: string
+          created_at?: string
+          encrypted_private_key: string
+          id?: string
+          name?: string | null
+          type: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Update: {
+          address?: string
+          created_at?: string
+          encrypted_private_key?: string
+          id?: string
+          name?: string | null
+          type?: string
+          updated_at?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

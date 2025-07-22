@@ -5,6 +5,7 @@ import { DeploymentHandler } from './deployment.handler';
 import { NavigationHandler } from './navigation.handler';
 import { CallbackManager } from '../callbacks';
 import { web3Provider } from '../../web3/provider';
+import { WalletHandlers } from './wallet.handler';
 
 export class SetupHandler {
   /**
@@ -70,7 +71,6 @@ Current network: ${process.env.NETWORK || 'Local'}
       }
 
       const { action, data } = callbackData;
-      
       switch (action) {
         case 'edit_param':
           await DeploymentHandler.showSingleParameterEditing(ctx, data.templateId, data.parameter);
@@ -87,6 +87,19 @@ Current network: ${process.env.NETWORK || 'Local'}
         case 'select_template':
           await BotHandlers.showParameterEditing(ctx, data.templateId);
           break;
+        // Wallet actions
+        case 'wallet_view':
+          await WalletHandlers.showWalletDetail(ctx, data.walletId);
+          break;
+        case 'wallet_export':
+          await WalletHandlers.exportPrivateKey(ctx, data.walletId);
+          break;
+        case 'wallet_nickname':
+          await WalletHandlers.changeNickname(ctx, data.walletId);
+          break;
+        case 'wallet_remove':
+          await WalletHandlers.removeWallet(ctx, data.walletId);
+          break;
         default:
           await ctx.answerCbQuery('❌ Unknown action');
       }
@@ -101,7 +114,7 @@ Current network: ${process.env.NETWORK || 'Local'}
     bot.action('retry_deployment', BotHandlers.showDeploymentProgress);
 
     // Coming soon handlers
-    bot.action('action_wallets', (ctx) => BotHandlers.showComingSoon(ctx, 'Wallet Management'));
+    bot.action('action_wallets', WalletHandlers.showWalletMain);
     bot.action('action_contracts', (ctx) => BotHandlers.showComingSoon(ctx, 'Contract Templates'));
     bot.action('action_settings', (ctx) => BotHandlers.showComingSoon(ctx, 'Settings'));
 
@@ -119,6 +132,15 @@ Current network: ${process.env.NETWORK || 'Local'}
 
     // Quick deploy start (legacy)
     bot.action('quick_deploy_start', BotHandlers.handleQuickDeploy);
+
+    // Wallet management handlers
+    bot.action('wallet_generate', WalletHandlers.generateWallet);
+    bot.action('wallet_manage', (ctx) => WalletHandlers.showWalletList(ctx, ctx.session.walletPage || 0));
+    bot.action('wallet_prev', (ctx) => WalletHandlers.showWalletList(ctx, Math.max((ctx.session.walletPage || 0) - 1, 0)));
+    bot.action('wallet_next', (ctx) => WalletHandlers.showWalletList(ctx, (ctx.session.walletPage || 0) + 1));
+    bot.action('wallet_back', WalletHandlers.showWalletMain);
+    bot.action('wallets_refresh', WalletHandlers.showWalletMain);
+    bot.action('close_message', WalletHandlers.closeMessage);
 
     // Error handlers
     bot.action('retry', (ctx) => {
@@ -146,7 +168,11 @@ Current network: ${process.env.NETWORK || 'Local'}
           await DeploymentHandler.handleSingleParameterInput(ctx);
           return;
         }
-
+        // Check if awaiting wallet nickname input
+        if (ctx.session.awaitingNicknameWalletId) {
+          await WalletHandlers.handleNicknameInput(ctx);
+          return;
+        }
         // Default text handler
         await ctx.reply(
           "I don't understand that command. Use /help to see available commands or click /start to return to the home screen.",

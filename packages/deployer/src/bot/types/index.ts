@@ -23,9 +23,14 @@ export interface SessionData {
     currentParameter?: string;
     instanceId?: string; // Add this line
   };
-  currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts' | 'template_selection' | 'parameter_editing' | 'deployment_confirmation' | 'deployment_progress' | 'deployment_result';
+  // currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts' | 'template_selection' | 'parameter_editing' | 'deployment_confirmation' | 'deployment_progress' | 'deployment_result';
+  currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts' | 'template_selection' | 'parameter_editing' | 'deployment_confirmation' | 'deployment_progress' | 'deployment_result'
+  | 'wallet_main' | 'wallet_list' | 'wallet_detail';
   currentScreenData?: any;
   navigationHistory?: NavigationHistoryItem[];
+  walletPage?: number;
+  selectedWalletId?: string;
+  awaitingNicknameWalletId?: string;
 }
 
 // Extend Telegraf context with session
