@@ -4,6 +4,8 @@ import { BotContext } from '../types';
 import { BotScreens } from '../screens';
 import { BotKeyboards } from '../keyboards';
 import { web3Provider } from '../../web3/provider';
+import { DeploymentHandler } from './deployment.handler';
+import { NavigationHandler } from './navigation.handler';
 
 export class BotHandlers {
   // Home screen handler
@@ -348,5 +350,40 @@ Stay tuned for updates.`,
       console.error('Error showing coming soon:', error);
       await BotHandlers.showError(ctx, 'Failed to load feature');
     }
+  }
+
+  // New deployment flow handlers
+  static async showTemplateSelection(ctx: BotContext) {
+    return await DeploymentHandler.showTemplateSelection(ctx);
+  }
+
+  static async showParameterEditing(ctx: BotContext, templateId?: string) {
+    if (!templateId) {
+      await ctx.reply('❌ No template selected. Please choose a template first.');
+      return;
+    }
+    return await DeploymentHandler.showParameterEditing(ctx, templateId);
+  }
+
+  static async showDeploymentConfirmation(ctx: BotContext, data?: any) {
+    return await DeploymentHandler.showParameterConfirmation(ctx);
+  }
+
+  static async showDeploymentProgress(ctx: BotContext, data?: any) {
+    return await DeploymentHandler.startDeployment(ctx);
+  }
+
+  static async showDeploymentResult(ctx: BotContext, data?: any) {
+    // This will be handled by the deployment handler
+    return;
+  }
+
+  // Navigation handlers
+  static async goBack(ctx: BotContext) {
+    return await NavigationHandler.goBack(ctx);
+  }
+
+  static async goHome(ctx: BotContext) {
+    return await NavigationHandler.goHome(ctx);
   }
 }

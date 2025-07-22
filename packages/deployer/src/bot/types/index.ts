@@ -1,17 +1,31 @@
 // src/bot/types/index.ts
 import { Context, Scenes } from 'telegraf';
 
+// Navigation history item
+export interface NavigationHistoryItem {
+  screen: SessionData['currentScreen'];
+  data?: any;
+}
+
 // Session data interface
 export interface SessionData {
   deployState?: {
-    step: 'select_contract' | 'enter_name' | 'enter_symbol' | 'enter_supply' | 'confirm' | 'deploying';
+    step: 'select_contract' | 'enter_name' | 'enter_symbol' | 'enter_supply' | 'confirm' | 'deploying' | 'parameter_editing' | 'parameter_confirmed' | 'ready_to_deploy' | 'editing_single_parameter';
     contractId?: string;
     tokenName?: string;
     tokenSymbol?: string;
     totalSupply?: string;
     deployerAddress?: string;
+    templateId?: string;
+    discoveredParams?: string[];
+    parameterValues?: Record<string, string>;
+    modifiedSource?: string;
+    currentParameter?: string;
+    instanceId?: string; // Add this line
   };
-  currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts';
+  currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts' | 'template_selection' | 'parameter_editing' | 'deployment_confirmation' | 'deployment_progress' | 'deployment_result';
+  currentScreenData?: any;
+  navigationHistory?: NavigationHistoryItem[];
 }
 
 // Extend Telegraf context with session

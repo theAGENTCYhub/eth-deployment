@@ -2,6 +2,7 @@
 import { Telegraf, session } from 'telegraf';
 import { BotContext, SessionData } from './types';
 import { BotHandlers } from './handlers';
+import { SetupHandler } from './handlers/setup.handler';
 import { config } from '../config/env';
 
 export class EthDeployerBot {
@@ -35,75 +36,7 @@ export class EthDeployerBot {
 	}
 
 	private setupHandlers() {
-		// Command handlers
-		this.bot.start(BotHandlers.showHome);
-		this.bot.command('home', BotHandlers.showHome);
-		this.bot.command('deploy', BotHandlers.showDeploy);
-		this.bot.help((ctx) => {
-			ctx.reply(`
-*ETH Token Deployer Bot Commands*
-
-/start - Show home screen
-/home - Return to home
-/deploy - Start token deployment
-/help - Show this help message
-
-*About*
-This bot helps you deploy ERC20 tokens on Ethereum. Choose your network environment and start deploying!
-
-Current network: ${config.NETWORK}
-      `, { parse_mode: 'Markdown' });
-		});
-
-		// Callback query handlers (button clicks)
-		this.bot.action('action_home', BotHandlers.showHome);
-		this.bot.action('action_deploy', BotHandlers.showDeploy);
-		this.bot.action('action_network', BotHandlers.showNetworkStatus);
-
-		// Deploy flow handlers
-		this.bot.action('deploy_quick', BotHandlers.showQuickDeploy);
-		this.bot.action('deploy_advanced', (ctx) => BotHandlers.showComingSoon(ctx, 'Advanced Deploy'));
-		this.bot.action('deploy_template', (ctx) => BotHandlers.showComingSoon(ctx, 'Template Selection'));
-
-		// Coming soon handlers
-		this.bot.action('action_wallets', (ctx) => BotHandlers.showComingSoon(ctx, 'Wallet Management'));
-		this.bot.action('action_contracts', (ctx) => BotHandlers.showComingSoon(ctx, 'Contract Templates'));
-		this.bot.action('action_settings', (ctx) => BotHandlers.showComingSoon(ctx, 'Settings'));
-
-		// Network handlers
-		this.bot.action('network_refresh', BotHandlers.showNetworkStatus);
-		this.bot.action('network_balance', async (ctx) => {
-			try {
-				const balance = await web3Provider.getBalance();
-				await ctx.answerCbQuery(`Current balance: ${balance} ETH`);
-			} catch (error) {
-				await ctx.answerCbQuery('Failed to get balance');
-			}
-		});
-
-		// Quick deploy start
-		this.bot.action('quick_deploy_start', BotHandlers.handleQuickDeploy);
-
-		// Error handlers
-		this.bot.action('retry', (ctx) => {
-			// Retry based on current screen
-			const currentScreen = ctx.session.currentScreen;
-			switch (currentScreen) {
-				case 'deploy':
-					return BotHandlers.showDeploy(ctx);
-				case 'home':
-				default:
-					return BotHandlers.showHome(ctx);
-			}
-		});
-
-		// Catch-all for unhandled messages
-		this.bot.on('text', async (ctx) => {
-			await ctx.reply(
-				"I don't understand that command. Use /help to see available commands or click /start to return to the home screen.",
-				{ parse_mode: 'Markdown' }
-			);
-		});
+		SetupHandler.setupHandlers(this.bot);
 	}
 
 	private setupErrorHandling() {
