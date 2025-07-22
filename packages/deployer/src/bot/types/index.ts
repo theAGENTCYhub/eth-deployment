@@ -31,6 +31,7 @@ export interface SessionData {
   walletPage?: number;
   selectedWalletId?: string;
   awaitingNicknameWalletId?: string;
+  awaitingImportPrivateKey?: boolean;
 }
 
 // Extend Telegraf context with session

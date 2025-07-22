@@ -151,6 +151,45 @@ export class WalletHandler {
     }
   }
 
+  static async importWalletPrompt(ctx: BotContext) {
+    ctx.session.awaitingImportPrivateKey = true;
+    await ctx.reply('Please send the private key of the wallet you want to import:');
+  }
+
+  static async handleImportPrivateKey(ctx: BotContext) {
+    const privateKey = (ctx.message && 'text' in ctx.message) ? ctx.message.text.trim() : undefined;
+    if (!privateKey) {
+      await ctx.reply('Invalid private key. Please try again.');
+      return;
+    }
+    const userId = String(ctx.from?.id);
+    try {
+      const result = await walletService.importWallet({ privateKey, type: 'minor', userId });
+      ctx.session.awaitingImportPrivateKey = undefined;
+      if (result.success && result.data) {
+        await ctx.reply(`✅ Wallet imported: \`${result.data.address}\``, {
+          parse_mode: 'Markdown',
+          reply_markup: BotKeyboards.getClosableKeyboard().reply_markup
+        });
+        // Show wallet main screen as a new message
+        const walletsResult = await walletService.getWalletsByUser(userId);
+        const walletCount = walletsResult.success && walletsResult.data ? walletsResult.data.length : 0;
+        const screen = BotScreens.getWalletMainScreen(walletCount);
+        const keyboard = BotKeyboards.getWalletMainKeyboard();
+        await ctx.reply(BotScreens.formatScreen(screen), {
+          parse_mode: 'Markdown',
+          reply_markup: keyboard.reply_markup
+        });
+        return;
+      } else {
+        await ctx.reply('Failed to import wallet. Please check your private key and try again.');
+      }
+    } catch (err) {
+      ctx.session.awaitingImportPrivateKey = undefined;
+      await ctx.reply('Failed to import wallet. Please check your private key and try again.');
+    }
+  }
+
   static async closeMessage(ctx: BotContext) {
     try {
       if (ctx.callbackQuery && 'message' in ctx.callbackQuery && ctx.callbackQuery.message) {
@@ -168,6 +207,8 @@ export const WalletHandlers = {
   showWalletList: WalletHandler.showWalletList,
   showWalletDetail: WalletHandler.showWalletDetail,
   generateWallet: WalletHandler.generateWallet,
+  importWalletPrompt: WalletHandler.importWalletPrompt,
+  handleImportPrivateKey: WalletHandler.handleImportPrivateKey,
   exportPrivateKey: WalletHandler.exportPrivateKey,
   changeNickname: WalletHandler.changeNickname,
   handleNicknameInput: WalletHandler.handleNicknameInput,

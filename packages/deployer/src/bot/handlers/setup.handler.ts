@@ -141,6 +141,7 @@ Current network: ${process.env.NETWORK || 'Local'}
     bot.action('wallet_back', WalletHandlers.showWalletMain);
     bot.action('wallets_refresh', WalletHandlers.showWalletMain);
     bot.action('close_message', WalletHandlers.closeMessage);
+    bot.action('wallet_import', WalletHandlers.importWalletPrompt);
 
     // Error handlers
     bot.action('retry', (ctx) => {
@@ -171,6 +172,11 @@ Current network: ${process.env.NETWORK || 'Local'}
         // Check if awaiting wallet nickname input
         if (ctx.session.awaitingNicknameWalletId) {
           await WalletHandlers.handleNicknameInput(ctx);
+          return;
+        }
+        // Check if awaiting wallet import
+        if (ctx.session.awaitingImportPrivateKey) {
+          await WalletHandlers.handleImportPrivateKey(ctx);
           return;
         }
         // Default text handler

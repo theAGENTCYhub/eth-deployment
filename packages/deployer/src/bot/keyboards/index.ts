@@ -146,6 +146,7 @@ export class BotKeyboards {
   static getWalletMainKeyboard() {
     return Markup.inlineKeyboard([
       [Markup.button.callback('➕ Generate New Wallet', 'wallet_generate')],
+      [Markup.button.callback('🔑 Import Wallet', 'wallet_import')],
       [Markup.button.callback('📒 Manage Existing Wallets', 'wallet_manage')],
       [Markup.button.callback('🔄 Refresh', 'wallets_refresh')],
       [Markup.button.callback('🔙 Back', 'action_home')]
