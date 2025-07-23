@@ -1,144 +1,55 @@
-// src/bot/screens/index.ts
-import { web3Provider } from '../../web3/provider';
+// Import screen classes
+import { DeploymentScreens } from './deployment.screens';
+import { WalletScreens } from './wallet.screens';
+import { ParameterEditingScreens } from './parameter-editing.screens';
+import { GeneralScreens } from './general.screens';
 
-export interface ScreenContent {
-    title: string;
-    description: string;
-    footer?: string;
-}
+// Export screen classes
+export { DeploymentScreens } from './deployment.screens';
+export { WalletScreens } from './wallet.screens';
+export { ParameterEditingScreens } from './parameter-editing.screens';
+export { GeneralScreens } from './general.screens';
+
+// Types
+export type { ScreenContent } from './types';
 
 // Utility to escape Markdown special characters
-function escapeMarkdown(text: string): string {
+export function escapeMarkdown(text: string): string {
     if (!text) return '';
     return text
         .replace(/([_\*\[\]()~`>#+\-=|{}.!])/g, '\\$1');
 }
 
+// Main BotScreens class that provides access to all screen methods
 export class BotScreens {
-    static getHomeScreen(): ScreenContent {
-        const networkStatus = web3Provider.getNetworkStatus();
-        const isTestnet = web3Provider.isTestnet();
-        const testnetWarning = isTestnet ? "\n⚠️ *Running on testnet - Safe for testing*" : "\n🔴 *MAINNET MODE - USE WITH CAUTION*";
+    // General screens
+    static getHomeScreen = GeneralScreens.getHomeScreen;
+    static getDeployScreen = GeneralScreens.getDeployScreen;
+    static getErrorScreen = GeneralScreens.getErrorScreen;
+    static getSuccessScreen = GeneralScreens.getSuccessScreen;
 
-        return {
-            title: "🚀 Welcome to ETH Token Deployer",
-            description: `
-Your one-stop solution for deploying ERC20 tokens on Ethereum!
+    // Parameter editing screens
+    static getParameterEditingScreen = ParameterEditingScreens.getParameterEditingScreen;
+    static getSingleParameterScreen = ParameterEditingScreens.getSingleParameterScreen;
+    static getParameterConfirmationScreen = ParameterEditingScreens.getParameterConfirmationScreen;
 
-${networkStatus}${testnetWarning}
+    // Wallet screens
+    static getWalletMainScreen = WalletScreens.getWalletMainScreen;
+    static getWalletListScreen = WalletScreens.getWalletListScreen;
+    static getWalletDetailScreen = WalletScreens.getWalletDetailScreen;
 
-*What you can do:*
-• Deploy custom ERC20 tokens
-• Manage contract templates
-• Configure multi-wallet distributions
-• Create liquidity pools
+    // Deployment screens
+    static getTemplateSelectionScreen = DeploymentScreens.getTemplateSelectionScreen;
+    static getWalletSelectionScreen = DeploymentScreens.getWalletSelectionScreen;
+    static getCompilationProgressScreen = DeploymentScreens.getCompilationProgressScreen;
+    static getCompilationSuccessScreen = DeploymentScreens.getCompilationSuccessScreen;
+    static getDeploymentSuccessScreen = DeploymentScreens.getDeploymentSuccessScreen;
+    static getDeploymentErrorScreen = DeploymentScreens.getDeploymentErrorScreen;
 
-Ready to launch your next token?`,
-            footer: "Select an option below to get started 👇"
-        };
-    }
-
-    static getDeployScreen(): ScreenContent {
-        const networkStatus = web3Provider.getNetworkStatus();
-
-        return {
-            title: "⚡ Deploy ERC20 Token",
-            description: `
-Let's deploy your ERC20 token!
-
-${networkStatus}
-
-*Deployment Process:*
-1️⃣ Choose contract template
-2️⃣ Configure token parameters
-3️⃣ Set up wallet distribution
-4️⃣ Review & deploy
-
-*Required Information:*
-• Token name (e.g., "My Awesome Token")
-• Symbol (e.g., "MAT")
-• Total supply (e.g., 1000000)
-• Wallet for deployment`,
-            footer: "Choose your deployment option 👇"
-        };
-    }
-
-    static getErrorScreen(error: string): ScreenContent {
-        return {
-            title: "❌ Error",
-            description: `
-Something went wrong:
-
-\`${error}\`
-
-Please try again or contact support if the issue persists.`,
-            footer: "Use /start to return to home"
-        };
-    }
-
-    static getSuccessScreen(title: string, message: string): ScreenContent {
-        return {
-            title: `✅ ${title}`,
-            description: message,
-            footer: "Use /start to return to home"
-        };
-    }
-
-    static getParameterEditingScreen(templateName: string, parameters: string[], currentValues: Record<string, string> = {}): ScreenContent {
-        const configuredCount = Object.keys(currentValues).length;
-        
-        return {
-            title: `⚙️ Configure ${escapeMarkdown(templateName)}`,
-            description: `\n*Template: ${escapeMarkdown(templateName)}*\n\nFound **${parameters.length}** parameters to configure.\n\n*How to configure:*\n📝 Click on any parameter button below to edit its value.\n✅ Use "Confirm All" when you're done.\n🔄 Use "Reset All" to clear all values.\n\n*Current Progress:*\n• Configured: ${configuredCount}/${parameters.length} parameters`,
-            footer: "Click on a parameter to edit it 👇"
-        };
-    }
-
-    static getSingleParameterScreen(parameter: string, type: string, description: string, currentValue: string, isRequired: boolean): ScreenContent {
-        const required = isRequired ? ' (Required)' : '';
-        
-        return {
-            title: `⚙️ Edit Parameter: ${escapeMarkdown(parameter)}`,
-            description: `\n*Parameter Details:*\n• **Name:** ${escapeMarkdown(parameter)}${required}\n• **Type:** ${escapeMarkdown(type)}\n• **Description:** ${escapeMarkdown(description)}\n• **Current Value:** ${escapeMarkdown(currentValue) || 'Not set'}\n\n*How to set value:*\n📝 Reply with the new value for this parameter.\n\n*Examples:*\n${type === 'string' ? '• "My Token Name"' : ''}\n${type === 'number' ? '• 1000000' : ''}\n${type === 'address' ? '• 0x1234567890123456789012345678901234567890' : ''}\n${type === 'boolean' ? '• true or false' : ''}`,
-            footer: "Reply with the new value below 👇"
-        };
-    }
-
-    static getParameterConfirmationScreen(templateName: string, parameterValues: Record<string, string>, modifiedSource: string, network: string): ScreenContent {
-        return {
-            title: `✅ Parameter Configuration Complete`,
-            description: `\n*Template: ${escapeMarkdown(templateName)}*\n\n**Configured Parameters:**\n${Object.entries(parameterValues).map(([key, value]) => 
-                `• **${escapeMarkdown(key)}**: \`${escapeMarkdown(value)}\``
-            ).join('\n')}\n\n**Preview (first few lines):**\n\`\`\`\n${escapeMarkdown(modifiedSource.split('\n').slice(0, 10).join('\n'))}\n\`\`\`\n\n*Ready to deploy?*\n✅ Parameters validated\n✅ Contract source ready\n✅ Network: ${escapeMarkdown(network)}`,
-            footer: "Review the configuration and click 'Deploy Contract' ��"
-        };
-    }
-
-    static getWalletMainScreen(walletCount: number): ScreenContent {
-        return {
-            title: '💼 Wallet Management',
-            description: `You currently have *${walletCount}* wallets.\n\nWhat would you like to do?`,
-            footer: 'Choose an option below:'
-        };
-    }
-
-    static getWalletListScreen(wallets: any[], page: number, totalPages: number): ScreenContent {
-        return {
-            title: '📒 Your Wallets',
-            description: `Page *${page + 1}* of *${totalPages}*\n\n${wallets.map((w, i) => `*${i + 1}.* \`${w.address}\` (${w.name || 'No nickname'}) [${w.type}]`).join('\n') || 'No wallets found.'}`,
-            footer: 'Select a wallet or navigate pages.'
-        };
-    }
-
-    static getWalletDetailScreen(wallet: any): ScreenContent {
-        return {
-            title: '👛 Wallet Details',
-            description: `*Address:* \`${wallet.address}\`\n*Nickname:* ${wallet.name || 'No nickname'}\n*Type:* ${wallet.type}\n*Created:* ${wallet.created_at ? wallet.created_at.split('T')[0] : ''}`,
-            footer: 'Choose an action below:'
-        };
-    }
-
-    static formatScreen(screen: ScreenContent): string {
+    /**
+     * Format a screen content object into a Telegram message string
+     */
+    static formatScreen(screen: any): string {
         let message = `*${screen.title}*\n\n${screen.description}`;
 
         if (screen.footer) {

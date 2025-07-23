@@ -21,7 +21,8 @@ export interface SessionData {
       'parameter_confirmed' |
       'ready_to_deploy' |
       'editing_single_parameter' |
-      'wallet_selection';
+      'wallet_selection' |
+      'wallet_selected';
     contractId?: string;
     tokenName?: string;
     tokenSymbol?: string;
@@ -37,12 +38,20 @@ export interface SessionData {
   };
   // currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts' | 'template_selection' | 'parameter_editing' | 'deployment_confirmation' | 'deployment_progress' | 'deployment_result';
   currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts' | 'template_selection' | 'parameter_editing' | 'deployment_confirmation' | 'deployment_progress' | 'deployment_result'
-  | 'wallet_main' | 'wallet_list' | 'wallet_detail';
+  | 'wallet_main' | 'wallet_list' | 'wallet_detail' | 'contracts_main';
   currentScreenData?: any;
   navigationHistory?: NavigationHistoryItem[];
   walletPage?: number;
   awaitingNicknameWalletId?: string;
   awaitingImportPrivateKey?: boolean;
+  contractsState?: {
+    templates?: any[];
+    currentTemplate?: any;
+    contracts?: any[];
+    currentContract?: any;
+    currentPage?: number;
+    total?: number;
+  };
 }
 
 // Extend Telegraf context with session
