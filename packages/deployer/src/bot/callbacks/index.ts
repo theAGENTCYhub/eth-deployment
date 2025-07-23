@@ -68,8 +68,39 @@ export class CallbackManager {
     return this.generateCallbackId('select_template', { templateId });
   }
 
+  /**
+   * Generate contract detail callback
+   */
+  static generateContractDetailCallback(contractId: string): string {
+    return this.generateCallbackId('contract_detail', { contractId });
+  }
 
+  /**
+   * Generate contract remove callback
+   */
+  static generateContractRemoveCallback(contractId: string): string {
+    return this.generateCallbackId('contract_remove', { contractId });
+  }
 
+  /**
+   * Generate contract confirm remove callback
+   */
+  static generateContractConfirmRemoveCallback(contractId: string): string {
+    return this.generateCallbackId('contract_confirm_remove', { contractId });
+  }
 
+  /**
+   * Generate contract copy callback
+   */
+  static generateContractCopyCallback(contractId: string): string {
+    return this.generateCallbackId('contract_copy', { contractId });
+  }
+
+  /**
+   * Generate contracts page callback
+   */
+  static generateContractsPageCallback(page: number): string {
+    return this.generateCallbackId('contracts_page', { page });
+  }
 } 
 

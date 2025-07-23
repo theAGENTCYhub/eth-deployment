@@ -6,6 +6,7 @@ import { NavigationHandler } from './navigation.handler';
 import { CallbackManager } from '../callbacks';
 import { web3Provider } from '../../web3/provider';
 import { WalletHandlers } from './wallet.handler';
+import { ContractsHandler } from './contracts.handler';
 
 export class SetupHandler {
   /**
@@ -39,8 +40,6 @@ Current network: ${process.env.NETWORK || 'Local'}
     bot.action('action_go_home', NavigationHandler.goHome);
 
     // Deploy flow handlers
-    bot.action('deploy_quick', BotHandlers.showQuickDeploy);
-    bot.action('deploy_advanced', (ctx) => BotHandlers.showComingSoon(ctx, 'Advanced Deploy'));
     bot.action('deploy_template', BotHandlers.showTemplateSelection);
 
     // Template selection handlers
@@ -100,6 +99,23 @@ Current network: ${process.env.NETWORK || 'Local'}
         case 'wallet_remove':
           await WalletHandlers.removeWallet(ctx, data.walletId);
           break;
+        // Contract actions
+        case 'contract_detail':
+          await ContractsHandler.showContractDetails(ctx, data.contractId);
+          break;
+        case 'contract_remove':
+          await ContractsHandler.showRemoveConfirmation(ctx, data.contractId);
+          break;
+        case 'contract_confirm_remove':
+          await ContractsHandler.removeContract(ctx, data.contractId);
+          break;
+        case 'contract_copy':
+          // TODO: Implement copy address functionality
+          await ctx.answerCbQuery('Copy functionality coming soon!');
+          break;
+        case 'contracts_page':
+          await ContractsHandler.showDeployedContracts(ctx, data.page);
+          break;
         default:
           await ctx.answerCbQuery('❌ Unknown action');
       }
@@ -110,13 +126,18 @@ Current network: ${process.env.NETWORK || 'Local'}
     });
 
     // Deployment handlers
-    bot.action('start_deployment', BotHandlers.showDeploymentProgress);
-    bot.action('retry_deployment', BotHandlers.showDeploymentProgress);
+    bot.action('start_deployment', DeploymentHandler.startDeployment);
+    bot.action('retry_deployment', DeploymentHandler.startDeployment);
 
     // Coming soon handlers
     bot.action('action_wallets', WalletHandlers.showWalletMain);
-    bot.action('action_contracts', (ctx) => BotHandlers.showComingSoon(ctx, 'Contract Templates'));
+    bot.action('action_contracts', ContractsHandler.showContractsMain);
     bot.action('action_settings', (ctx) => BotHandlers.showComingSoon(ctx, 'Settings'));
+
+    // Contracts handlers
+    bot.action('contracts_view_deployed', async (ctx) => {
+      await ContractsHandler.showDeployedContracts(ctx, 0);
+    });
 
     // Network handlers
     bot.action('action_network', BotHandlers.showNetworkStatus);
@@ -130,8 +151,7 @@ Current network: ${process.env.NETWORK || 'Local'}
       }
     });
 
-    // Quick deploy start (legacy)
-    bot.action('quick_deploy_start', BotHandlers.handleQuickDeploy);
+
 
     // Wallet management handlers
     bot.action('wallet_generate', WalletHandlers.generateWallet);
