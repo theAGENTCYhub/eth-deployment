@@ -175,6 +175,7 @@ export type Database = {
           deployed_at: string | null
           error_message: string | null
           id: string
+          is_active: boolean
           status: string
           transaction_hash: string
           wallet_id: string
@@ -185,6 +186,7 @@ export type Database = {
           deployed_at?: string | null
           error_message?: string | null
           id?: string
+          is_active?: boolean
           status: string
           transaction_hash: string
           wallet_id: string
@@ -195,6 +197,7 @@ export type Database = {
           deployed_at?: string | null
           error_message?: string | null
           id?: string
+          is_active?: boolean
           status?: string
           transaction_hash?: string
           wallet_id?: string
@@ -215,6 +218,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      liquidity_positions: {
+        Row: {
+          amount_eth: string
+          amount_lp_tokens: string
+          amount_token: string
+          created_at: string
+          id: string
+          pair_address: string
+          short_id: string
+          updated_at: string
+          wallet_address: string
+        }
+        Insert: {
+          amount_eth: string
+          amount_lp_tokens: string
+          amount_token: string
+          created_at?: string
+          id?: string
+          pair_address: string
+          short_id: string
+          updated_at?: string
+          wallet_address: string
+        }
+        Update: {
+          amount_eth?: string
+          amount_lp_tokens?: string
+          amount_token?: string
+          created_at?: string
+          id?: string
+          pair_address?: string
+          short_id?: string
+          updated_at?: string
+          wallet_address?: string
+        }
+        Relationships: []
       }
       parameter_definitions: {
         Row: {
@@ -258,12 +297,195 @@ export type Database = {
         }
         Relationships: []
       }
+      positions: {
+        Row: {
+          amount: string
+          average_cost_basis: string | null
+          created_at: string
+          id: string
+          short_id: string
+          token_address: string
+          updated_at: string
+          wallet_address: string
+        }
+        Insert: {
+          amount: string
+          average_cost_basis?: string | null
+          created_at?: string
+          id?: string
+          short_id: string
+          token_address: string
+          updated_at?: string
+          wallet_address: string
+        }
+        Update: {
+          amount?: string
+          average_cost_basis?: string | null
+          created_at?: string
+          id?: string
+          short_id?: string
+          token_address?: string
+          updated_at?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
+      token_launches: {
+        Row: {
+          amount_eth: string
+          amount_token: string
+          created_at: string
+          id: string
+          network: string
+          pair_address: string
+          short_id: string
+          token_address: string
+          transaction_id: string | null
+          wallet_address: string
+        }
+        Insert: {
+          amount_eth: string
+          amount_token: string
+          created_at?: string
+          id?: string
+          network: string
+          pair_address: string
+          short_id: string
+          token_address: string
+          transaction_id?: string | null
+          wallet_address: string
+        }
+        Update: {
+          amount_eth?: string
+          amount_token?: string
+          created_at?: string
+          id?: string
+          network?: string
+          pair_address?: string
+          short_id?: string
+          token_address?: string
+          transaction_id?: string | null
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "token_launches_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      trades: {
+        Row: {
+          amount_quote: string
+          amount_token: string
+          created_at: string
+          id: string
+          position_id: string | null
+          price: string
+          short_id: string
+          token_address: string
+          transaction_id: string | null
+          type: string
+          wallet_address: string
+        }
+        Insert: {
+          amount_quote: string
+          amount_token: string
+          created_at?: string
+          id?: string
+          position_id?: string | null
+          price: string
+          short_id: string
+          token_address: string
+          transaction_id?: string | null
+          type: string
+          wallet_address: string
+        }
+        Update: {
+          amount_quote?: string
+          amount_token?: string
+          created_at?: string
+          id?: string
+          position_id?: string | null
+          price?: string
+          short_id?: string
+          token_address?: string
+          transaction_id?: string | null
+          type?: string
+          wallet_address?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "trades_position_id_fkey"
+            columns: ["position_id"]
+            isOneToOne: false
+            referencedRelation: "positions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "trades_transaction_id_fkey"
+            columns: ["transaction_id"]
+            isOneToOne: false
+            referencedRelation: "transactions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      transactions: {
+        Row: {
+          block_number: number | null
+          created_at: string
+          error_message: string | null
+          gas_price: string | null
+          gas_used: string | null
+          id: string
+          metadata: Json | null
+          short_id: string | null
+          status: string
+          transaction_hash: string | null
+          type: string
+          wallet_address: string
+        }
+        Insert: {
+          block_number?: number | null
+          created_at?: string
+          error_message?: string | null
+          gas_price?: string | null
+          gas_used?: string | null
+          id?: string
+          metadata?: Json | null
+          short_id?: string | null
+          status: string
+          transaction_hash?: string | null
+          type: string
+          wallet_address: string
+        }
+        Update: {
+          block_number?: number | null
+          created_at?: string
+          error_message?: string | null
+          gas_price?: string | null
+          gas_used?: string | null
+          id?: string
+          metadata?: Json | null
+          short_id?: string | null
+          status?: string
+          transaction_hash?: string | null
+          type?: string
+          wallet_address?: string
+        }
+        Relationships: []
+      }
       wallets: {
         Row: {
           address: string
           created_at: string
           encrypted_private_key: string
           id: string
+          is_active: boolean
           name: string | null
           type: string
           updated_at: string
@@ -274,6 +496,7 @@ export type Database = {
           created_at?: string
           encrypted_private_key: string
           id?: string
+          is_active?: boolean
           name?: string | null
           type: string
           updated_at?: string
@@ -284,6 +507,7 @@ export type Database = {
           created_at?: string
           encrypted_private_key?: string
           id?: string
+          is_active?: boolean
           name?: string | null
           type?: string
           updated_at?: string

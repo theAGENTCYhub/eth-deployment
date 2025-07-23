@@ -1,5 +1,5 @@
 -- Drop old deployments table if it exists
-DROP TABLE IF EXISTS deployments;
+-- DROP TABLE IF EXISTS deployments;
 
 -- Create deployments table
 CREATE TABLE deployments (
