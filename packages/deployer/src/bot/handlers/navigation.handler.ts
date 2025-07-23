@@ -1,6 +1,7 @@
 import { BotContext, SessionData } from '../types';
 import { BotHandlers } from './index';
 import { WalletHandlers } from './wallet.handler';
+import { DeploymentHandler } from './deployment.handler';
 
 export class NavigationHandler {
   /**
@@ -49,9 +50,10 @@ export class NavigationHandler {
         case 'deployment_confirmation':
           return await BotHandlers.showDeploymentConfirmation(ctx, data);
         case 'deployment_progress':
-          return await BotHandlers.showDeploymentProgress(ctx, data);
+          return await DeploymentHandler.startDeployment(ctx);
         case 'deployment_result':
-          return await BotHandlers.showDeploymentResult(ctx, data);
+          // Deployment result is handled by the deployment handler directly
+          return await BotHandlers.showHome(ctx);
         default:
           return await BotHandlers.showHome(ctx);
       }

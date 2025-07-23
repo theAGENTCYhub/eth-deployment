@@ -1,11 +1,12 @@
 import { BotContext } from '../types';
 import { ParameterEditorService } from '../../services/parameter-editor.service';
-import { BotScreens } from '../screens';
-import { BotKeyboards } from '../keyboards';
+import { BotScreens, DeploymentScreens, ParameterEditingScreens } from '../screens';
+import { BotKeyboards, DeploymentKeyboards, ParameterEditingKeyboards } from '../keyboards';
 import { NavigationHandler } from './navigation.handler';
 import { CompilationClientService } from '../../services/compilation-client.service';
 import { CompiledArtifactsService } from '@eth-deployer/supabase';
 import { WalletService } from '@eth-deployer/supabase';
+import { DeploymentService } from '@eth-deployer/transactions/src/services/deployment.service';
 
 export class DeploymentHandler {
   private static parameterEditor = new ParameterEditorService();
@@ -15,30 +16,15 @@ export class DeploymentHandler {
    */
   static async showTemplateSelection(ctx: BotContext) {
     try {
-      const templatesResult = await this.parameterEditor.loadTemplates();
+      const templatesResult = await DeploymentHandler.parameterEditor.loadTemplates();
       
       if (!templatesResult.success || !templatesResult.data || templatesResult.data.length === 0) {
         await ctx.reply('❌ No contract templates available. Please try again later.');
         return;
       }
 
-      const screen = {
-        title: "📋 Select Contract Template",
-        description: `
-*Choose a contract template to deploy:*
-
-${templatesResult.data.map((template, index) => 
-  `${index + 1}. **${template.name}**\n   ${template.description || 'No description available'}`
-).join('\n\n')}
-
-*What happens next:*
-✅ Select a template
-✅ Configure parameters
-✅ Review and deploy`,
-        footer: "Select a template to continue 👇"
-      };
-
-      const keyboard = BotKeyboards.getTemplateSelectionKeyboard(templatesResult.data);
+      const screen = DeploymentScreens.getTemplateSelectionScreen(templatesResult.data);
+      const keyboard = DeploymentKeyboards.getTemplateSelectionKeyboard(templatesResult.data);
       const message = BotScreens.formatScreen(screen);
 
       if (ctx.callbackQuery) {
@@ -64,7 +50,7 @@ ${templatesResult.data.map((template, index) =>
    */
   static async showParameterEditing(ctx: BotContext, templateId: string) {
     try {
-      const templateResult = await this.parameterEditor.loadTemplate(templateId);
+      const templateResult = await DeploymentHandler.parameterEditor.loadTemplate(templateId);
       
       if (!templateResult.success || !templateResult.data) {
         await ctx.reply('❌ Template not found. Please select another template.');
@@ -72,7 +58,7 @@ ${templatesResult.data.map((template, index) =>
       }
 
       const template = templateResult.data;
-      const discoveredParams = this.parameterEditor.discoverParameters(template.source_code);
+      const discoveredParams = DeploymentHandler.parameterEditor.discoverParameters(template.source_code);
       
       if (discoveredParams.length === 0) {
         await ctx.reply('❌ No parameters found in this template. This template cannot be configured.');
@@ -80,7 +66,7 @@ ${templatesResult.data.map((template, index) =>
       }
 
       // Load parameter definitions
-      const paramDefsResult = await this.parameterEditor.loadParameterDefinitions();
+      const paramDefsResult = await DeploymentHandler.parameterEditor.loadParameterDefinitions();
       const paramDefs = paramDefsResult.success ? paramDefsResult.data || [] : [];
       const definedKeys = new Set(paramDefs.map(d => d.parameter_key));
       const missingDefs = discoveredParams.filter(p => !definedKeys.has(p));
@@ -90,7 +76,7 @@ ${templatesResult.data.map((template, index) =>
       let parameterValues: Record<string, string> = {};
       if (instanceId) {
         // Reload from DB for latest values
-        parameterValues = await this.parameterEditor.getInstanceParameters(instanceId);
+        parameterValues = await DeploymentHandler.parameterEditor.getInstanceParameters(instanceId);
       } else {
         // Prepare initial parameter values using defaults
         for (const param of discoveredParams) {
@@ -98,7 +84,7 @@ ${templatesResult.data.map((template, index) =>
           parameterValues[param] = def && def.default_value != null ? def.default_value : '';
         }
         // Create a new contract instance in the database
-        const saveResult = await this.parameterEditor.saveContractInstance(
+        const saveResult = await DeploymentHandler.parameterEditor.saveContractInstance(
           ctx.from?.id?.toString() || 'unknown',
           templateId,
           `Draft_${Date.now()}`,
@@ -112,12 +98,24 @@ ${templatesResult.data.map((template, index) =>
         instanceId = saveResult.instanceId;
       }
 
+      // Get wallet information if selected
+      let walletInfo = '';
+      let selectedWalletId = ctx.session.deployState?.selectedWalletId;
+      if (selectedWalletId) {
+        const walletService = new WalletService();
+        const walletResult = await walletService.getAllWallets();
+        const wallet = walletResult.success && walletResult.data ? walletResult.data.find(w => w.id === selectedWalletId) : undefined;
+        if (wallet) {
+          walletInfo = `*Selected Wallet:*\n• Address: \`${wallet.address}\`\n• Name: ${wallet.name || 'No nickname'}`;
+        }
+      }
+
       // Generate screen and keyboard
-      let screen = BotScreens.getParameterEditingScreen(template.name, discoveredParams, parameterValues);
+      let screen = ParameterEditingScreens.getParameterEditingScreen(template.name, discoveredParams, parameterValues, selectedWalletId, walletInfo);
       if (missingDefs.length > 0) {
         screen.description += `\n\n⚠️ *Warning: The following parameters are missing definitions and cannot be edited properly:*\n${missingDefs.map(p => `• ${p}`).join('\n')}`;
       }
-      const keyboard = BotKeyboards.getParameterEditingKeyboard(templateId, discoveredParams, parameterValues);
+      const keyboard = ParameterEditingKeyboards.getParameterEditingKeyboard(templateId, discoveredParams, parameterValues);
       const message = BotScreens.formatScreen(screen);
 
       if (ctx.callbackQuery) {
@@ -139,7 +137,8 @@ ${templatesResult.data.map((template, index) =>
         templateId,
         discoveredParams,
         parameterValues,
-        instanceId
+        instanceId,
+        selectedWalletId: ctx.session.deployState?.selectedWalletId
       };
 
     } catch (error) {
@@ -158,7 +157,7 @@ ${templatesResult.data.map((template, index) =>
         return;
       }
 
-      const paramDefsResult = await this.parameterEditor.loadParameterDefinitions();
+      const paramDefsResult = await DeploymentHandler.parameterEditor.loadParameterDefinitions();
       const paramDefs = paramDefsResult.success ? paramDefsResult.data || [] : [];
       const paramDef = paramDefs.find(d => d.parameter_key === parameter);
       
@@ -168,8 +167,8 @@ ${templatesResult.data.map((template, index) =>
       const isRequired = paramDef?.is_required || false;
 
       // Generate screen and keyboard
-      const screen = BotScreens.getSingleParameterScreen(parameter, type, description, currentValue, isRequired);
-      const keyboard = BotKeyboards.getSingleParameterKeyboard(templateId, parameter);
+      const screen = ParameterEditingScreens.getSingleParameterScreen(parameter, type, description, currentValue, isRequired);
+      const keyboard = ParameterEditingKeyboards.getSingleParameterKeyboard(templateId, parameter);
       const message = BotScreens.formatScreen(screen);
 
       await ctx.editMessageText(message, {
@@ -211,7 +210,7 @@ ${templatesResult.data.map((template, index) =>
       }
 
       // Validate the single parameter
-      const validationResult = await this.parameterEditor.validateParameters([{ key: currentParameter, value: input }]);
+      const validationResult = await DeploymentHandler.parameterEditor.validateParameters([{ key: currentParameter, value: input }]);
 
       if (!validationResult.success && validationResult.errors) {
         const errorMessage = `❌ Invalid value for ${currentParameter}:\n\n${validationResult.errors.join('\n')}`;
@@ -226,10 +225,10 @@ ${templatesResult.data.map((template, index) =>
       delete ctx.session.deployState.currentParameter;
 
       // Persist to database
-      await this.parameterEditor.updateInstanceParameters(instanceId, updatedValues);
+      await DeploymentHandler.parameterEditor.updateInstanceParameters(instanceId, updatedValues);
 
       // Return to parameter editing screen
-      await this.showParameterEditing(ctx, templateId);
+      await DeploymentHandler.showParameterEditing(ctx, templateId);
 
     } catch (error) {
       console.error('Error handling single parameter input:', error);
@@ -260,7 +259,7 @@ ${templatesResult.data.map((template, index) =>
       await ctx.answerCbQuery('✅ All parameters reset');
       
       // Return to parameter editing screen
-      await this.showParameterEditing(ctx, templateId);
+              await DeploymentHandler.showParameterEditing(ctx, templateId);
 
     } catch (error) {
       console.error('Error resetting parameters:', error);
@@ -301,12 +300,7 @@ ${templatesResult.data.map((template, index) =>
         return;
       }
       const wallets: any[] = walletsResult.data;
-      const screen = {
-        title: '💼 Select Wallet',
-        description: 'Choose the wallet you want to use for deployment.\n\n' +
-          wallets.map((w: any, i: number) => `*${i + 1}.* \`${w.address}\` (${w.name || 'No nickname'})`).join('\n'),
-        footer: 'Select a wallet below:'
-      };
+      const screen = DeploymentScreens.getWalletSelectionScreen(wallets);
       const keyboard = {
         reply_markup: {
           inline_keyboard: wallets.map((w: any, i: number) => [
@@ -330,8 +324,17 @@ ${templatesResult.data.map((template, index) =>
   static async handleWalletSelection(ctx: BotContext, walletId: string) {
     if (!ctx.session.deployState) return;
     ctx.session.deployState.selectedWalletId = walletId;
-    ctx.session.deployState.step = 'parameter_confirmed';
-    await this.showParameterConfirmation(ctx);
+    ctx.session.deployState.step = 'wallet_selected';
+    
+    // Show confirmation that wallet was selected and return to parameter editing
+    await ctx.answerCbQuery(`✅ Wallet selected! You can now confirm your parameters.`);
+    
+    // Return to parameter editing screen
+    if (ctx.session.deployState.templateId) {
+              await DeploymentHandler.showParameterEditing(ctx, ctx.session.deployState.templateId);
+    } else {
+      await ctx.reply('❌ Template not found. Please start over.');
+    }
   }
 
   /**
@@ -348,7 +351,14 @@ ${templatesResult.data.map((template, index) =>
         await ctx.reply('❌ Missing template or parameters. Please start over.');
         return;
       }
-      const templateResult = await this.parameterEditor.loadTemplate(templateId);
+      
+      // Check if wallet is selected
+      if (!selectedWalletId) {
+        await ctx.reply('❌ No wallet selected. Please select a wallet first.');
+        await DeploymentHandler.showParameterEditing(ctx, templateId);
+        return;
+      }
+      const templateResult = await DeploymentHandler.parameterEditor.loadTemplate(templateId);
       if (!templateResult.success || !templateResult.data) {
         await ctx.reply('❌ Template not found. Please start over.');
         return;
@@ -364,8 +374,8 @@ ${templatesResult.data.map((template, index) =>
       }
       const template = templateResult.data;
       const paramArray = Object.entries(parameterValues).map(([key, value]) => ({ key, value }));
-      const modifiedSource = this.parameterEditor.replaceParameters(template.source_code, paramArray);
-      const screen = BotScreens.getParameterConfirmationScreen(
+      const modifiedSource = DeploymentHandler.parameterEditor.replaceParameters(template.source_code, paramArray);
+      const screen = ParameterEditingScreens.getParameterConfirmationScreen(
         template.name,
         parameterValues,
         modifiedSource,
@@ -373,7 +383,7 @@ ${templatesResult.data.map((template, index) =>
       );
       // Add wallet info to confirmation
       screen.description += walletInfo;
-      const keyboard = BotKeyboards.getDeploymentConfirmationKeyboard();
+      const keyboard = DeploymentKeyboards.getDeploymentConfirmationKeyboard();
       const message = BotScreens.formatScreen(screen);
       await ctx.reply(message, {
         parse_mode: 'Markdown',
@@ -402,23 +412,13 @@ ${templatesResult.data.map((template, index) =>
       }
 
       // Show compilation progress
-      const progressScreen = {
-        title: "🛠️ Compiling Contract...",
-        description: `
-*Compilation in Progress*
-
-🔄 Sending contract to compiler...
-🔄 Waiting for result...
-
-This may take a few moments. Please wait...`,
-        footer: "Do not close this window ⏳"
-      };
+      const progressScreen = DeploymentScreens.getCompilationProgressScreen();
       await ctx.editMessageText(BotScreens.formatScreen(progressScreen), {
         parse_mode: 'Markdown'
       });
 
       // Load template to get contract name
-      const templateResult = await this.parameterEditor.loadTemplate(templateId);
+      const templateResult = await DeploymentHandler.parameterEditor.loadTemplate(templateId);
       if (!templateResult.success || !templateResult.data) {
         await ctx.reply('❌ Template not found. Please start over.');
         return;
@@ -428,7 +428,13 @@ This may take a few moments. Please wait...`,
       const contractNameMatch = modifiedSource.match(/contract\s+(\w+)\s+is\s+Context,\s+IERC20,\s+Ownable/);
       const contractName = contractNameMatch ? contractNameMatch[1] : 'TOKEN';
       
+      // Check for constructor parameters
+      const constructorMatch = modifiedSource.match(/constructor\s*\(([^)]*)\)/);
+      const constructorParams = constructorMatch ? constructorMatch[1].trim() : '';
+      
       console.log('🔍 Extracted contract name:', contractName);
+      console.log('🔍 Constructor parameters:', constructorParams);
+      console.log('🔍 Constructor match:', constructorMatch);
 
       // Compile contract
       const compilationClient = new CompilationClientService();
@@ -444,13 +450,13 @@ This may take a few moments. Please wait...`,
       } catch (error) {
         console.error('❌ Compilation error:', error);
         const errorMessage = error instanceof Error ? error.message : String(error);
-        await this.showDeploymentError(ctx, 'Compilation service error: ' + errorMessage);
+        await DeploymentHandler.showDeploymentError(ctx, 'Compilation service error: ' + errorMessage);
         return;
       }
 
       if (!compileResult || !('success' in compileResult) || !compileResult.success) {
         const errorMsg = (compileResult && 'error' in compileResult && compileResult.error) ? compileResult.error : 'Unknown compilation error';
-        await this.showDeploymentError(ctx, 'Compilation failed: ' + errorMsg);
+        await DeploymentHandler.showDeploymentError(ctx, 'Compilation failed: ' + errorMsg);
         return;
       }
 
@@ -461,33 +467,68 @@ This may take a few moments. Please wait...`,
         artifacts: compileResult
       });
       if (!artifactSaveResult.success) {
-        await this.showDeploymentError(ctx, 'Failed to save compiled artifact: ' + (artifactSaveResult.error || 'Unknown error'));
+        await DeploymentHandler.showDeploymentError(ctx, 'Failed to save compiled artifact: ' + (artifactSaveResult.error || 'Unknown error'));
         return;
       }
 
-      // Show success and prompt for next step (deployment)
-      const screen = {
-        title: "✅ Compilation Successful!",
+      // Show deployment progress
+      const deploymentProgressScreen = {
+        title: "🚀 Deploying Contract...",
         description: `
-*Your contract was compiled successfully!*
+*Deployment in Progress*
 
-• ABI and bytecode are ready.
-• You can now proceed to deploy your contract to the blockchain.
-`,
-        footer: "Click 'Deploy' to continue."
+✅ Contract compiled successfully
+🔄 Deploying to blockchain...
+🔄 Waiting for confirmation...
+
+This may take a few moments. Please wait...`,
+        footer: "Do not close this window ⏳"
       };
-      const keyboard = BotKeyboards.getDeploymentSuccessKeyboard();
-      const message = BotScreens.formatScreen(screen);
-      await ctx.editMessageText(message, {
-        parse_mode: 'Markdown',
-        reply_markup: keyboard.reply_markup
+      await ctx.editMessageText(BotScreens.formatScreen(deploymentProgressScreen), {
+        parse_mode: 'Markdown'
       });
-      // Optionally, update session state to indicate ready for deployment
-      ctx.session.deployState.step = 'ready_to_deploy';
+
+      // Deploy contract to blockchain
+      const deploymentService = new DeploymentService();
+      
+      // Extract constructor arguments from parameter values
+      // The database template constructor takes no parameters, so we pass an empty array
+      const constructorArgs: any[] = [];
+      
+      console.log('🚀 Starting blockchain deployment...');
+      console.log('Parameter values:', parameterValues);
+      console.log('Constructor args:', constructorArgs);
+      console.log('Modified source length:', modifiedSource.length);
+      console.log('Modified source preview:', modifiedSource.substring(0, 500));
+      
+      const deploymentResult = await deploymentService.deployContract({
+        walletId: selectedWalletId,
+        bytecode: compileResult.bytecode,
+        abi: compileResult.abi,
+        constructorArgs: constructorArgs,
+        instanceId: instanceId
+      });
+
+      console.log('📋 Deployment result:', deploymentResult);
+
+      if (deploymentResult.success && deploymentResult.data) {
+        console.log('✅ Deployment successful!');
+        
+        // Show success screen
+        await DeploymentHandler.showDeploymentSuccess(ctx, {
+          contractAddress: deploymentResult.data.contractAddress,
+          transactionHash: deploymentResult.data.hash,
+          gasUsed: 'N/A', // Could be extracted from deployment result if needed
+          deploymentCost: 'N/A' // Could be calculated if needed
+        });
+      } else {
+        console.log('❌ Deployment failed:', deploymentResult.error);
+        await DeploymentHandler.showDeploymentError(ctx, deploymentResult.error || 'Deployment failed');
+      }
 
     } catch (error) {
       console.error('Error during compilation/deployment:', error);
-      await this.showDeploymentError(ctx, error instanceof Error ? error.message : 'Deployment failed');
+      await DeploymentHandler.showDeploymentError(ctx, error instanceof Error ? error.message : 'Deployment failed');
     }
   }
 
@@ -496,27 +537,9 @@ This may take a few moments. Please wait...`,
    */
   static async showDeploymentSuccess(ctx: BotContext, deploymentResult: any) {
     try {
-      const screen = {
-        title: "✅ Deployment Successful!",
-        description: `
-*Your contract has been deployed successfully!*
+      const screen = DeploymentScreens.getDeploymentSuccessScreen(deploymentResult);
 
-🏷️ **Contract Address:** 
-\`${deploymentResult.contractAddress}\`
-
-📊 **Deployment Details:**
-• **Transaction:** \`${deploymentResult.transactionHash}\`
-• **Gas Used:** ${deploymentResult.gasUsed}
-• **Cost:** ${deploymentResult.deploymentCost} ETH
-
-*Next Steps:*
-• Save the contract address
-• Verify on block explorer
-• Start interacting with your contract`,
-        footer: "Congratulations on your successful deployment! 🎉"
-      };
-
-      const keyboard = BotKeyboards.getDeploymentSuccessKeyboard();
+      const keyboard = DeploymentKeyboards.getDeploymentSuccessKeyboard();
       const message = BotScreens.formatScreen(screen);
 
       await ctx.editMessageText(message, {
@@ -535,14 +558,8 @@ This may take a few moments. Please wait...`,
    */
   static async showDeploymentError(ctx: BotContext, errorMessage: string) {
     try {
-      // Wrap error message in triple backticks to avoid Telegram Markdown parse errors
-      const safeError = `\`\`\`\n${errorMessage}\`\`\``;
-      const screen = {
-        title: "\u274c Deployment Failed",
-        description: `\n*Deployment was unsuccessful*\n\n**Error:** ${safeError}\n\n*Possible solutions:*\n\u2022 Check your network connection\n\u2022 Ensure sufficient ETH for gas\n\u2022 Try again in a few moments`,
-        footer: "Click 'Try Again' to retry deployment"
-      };
-      const keyboard = BotKeyboards.getDeploymentErrorKeyboard();
+      const screen = DeploymentScreens.getDeploymentErrorScreen(errorMessage);
+      const keyboard = DeploymentKeyboards.getDeploymentErrorKeyboard();
       const message = BotScreens.formatScreen(screen);
       await ctx.editMessageText(message, {
         parse_mode: 'Markdown',
@@ -560,4 +577,14 @@ This may take a few moments. Please wait...`,
   static async handleChooseWallet(ctx: BotContext) {
     await DeploymentHandler.showWalletSelection(ctx);
   }
+
+  // TODO: Add handler for '📋 My Contracts' to list active deployments (paginated)
+  // TODO: Add contract detail view (show name, address, date, wallet, with 'Unknown Wallet' fallback)
+  // TODO: Add soft delete (remove contract) option with confirmation
+  // TODO: Integrate with screens and keyboards as needed
+  // TODO: Use short_id for all references
+  // TODO: Only show active contracts
+  // TODO: Add navigation back to home
+  // TODO: Add clear comments for each section
+  // TODO: Add TODOs for any missing integration points
 } 
