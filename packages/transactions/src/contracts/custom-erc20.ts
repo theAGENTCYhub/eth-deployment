@@ -22,6 +22,8 @@ export const CUSTOM_ERC20_ABI = [
   'function _isExcludedFromFee(address) external view returns (bool)',
   'function owner() external view returns (address)',
   'function removeLimits() external',
+  'function tradingOpen() external view returns (bool)',
+  'function swapEnabled() external view returns (bool)',
   
   // Events
   'event Transfer(address indexed from, address indexed to, uint256 value)',

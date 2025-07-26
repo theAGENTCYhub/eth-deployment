@@ -26,7 +26,7 @@ export async function signTransaction(
  * Get the next nonce for a wallet
  */
 export async function getNextNonce(provider: ethers.providers.Provider, address: string): Promise<number> {
-  return await provider.getTransactionCount(address, 'pending');
+  return await provider.getTransactionCount(address, 'latest');
 }
 
 /**

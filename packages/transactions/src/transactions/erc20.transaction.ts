@@ -137,13 +137,83 @@ export async function buildOpenTradingV2Tx({ signer, tokenAddress, nonce, gasLim
   gasPrice?: BigNumber | string | number
 }): Promise<ServiceResponse<{ tx: ethers.PopulatedTransaction }>> {
   try {
+    console.log('\n=== OPENTRADINGV2 DEBUG ===');
+    console.log('[DEBUG] Building openTradingV2 transaction for:', tokenAddress);
+    
     const contract = new ethers.Contract(tokenAddress, CUSTOM_ERC20_ABI, signer);
+    
+    // DEBUG: Check contract state before building transaction
+    try {
+      const signerAddress = await signer.getAddress();
+      console.log('[DEBUG] Signer address:', signerAddress);
+      
+      // Check if signer is the owner
+      const owner = await contract.owner();
+      console.log('[DEBUG] Contract owner:', owner);
+      console.log('[DEBUG] Is signer owner?', signerAddress.toLowerCase() === owner.toLowerCase());
+      
+      // Check if trading is already open
+      try {
+        const tradingOpen = await contract.tradingOpen();
+        console.log('[DEBUG] Trading already open?', tradingOpen);
+        
+        // Also check swapEnabled
+        const swapEnabled = await contract.swapEnabled();
+        console.log('[DEBUG] Swap enabled?', swapEnabled);
+        
+        // Check if we can call the function directly (simulate the call)
+        try {
+          console.log('[DEBUG] Simulating openTradingV2 call...');
+          const result = await contract.callStatic.openTradingV2();
+          console.log('[DEBUG] Static call successful:', result);
+        } catch (simError) {
+          console.log('[DEBUG] Static call failed:', simError instanceof Error ? simError.message : 'Unknown error');
+          // Try to decode the error if it's a revert
+          if (simError instanceof Error && 'data' in simError) {
+            console.log('[DEBUG] Revert data:', (simError as any).data);
+          }
+        }
+      } catch (error) {
+        console.log('[DEBUG] Could not check trading status:', error instanceof Error ? error.message : 'Unknown error');
+      }
+      
+      // Check if signer has tokens (to verify contract is accessible)
+      const balance = await contract.balanceOf(signerAddress);
+      console.log('[DEBUG] Signer token balance:', balance.toString());
+      
+    } catch (error) {
+      console.log('[DEBUG] Error checking contract state:', error instanceof Error ? error.message : 'Unknown error');
+    }
+    
+    // Build the transaction
+    console.log('[DEBUG] Building openTradingV2 transaction...');
     const tx = await contract.populateTransaction.openTradingV2();
+    console.log('[DEBUG] Transaction built successfully');
+    console.log('[DEBUG] Transaction data:', tx.data);
+    
+    // Try to estimate gas for the transaction
+    try {
+      console.log('[DEBUG] Estimating gas for openTradingV2...');
+      const estimatedGas = await contract.estimateGas.openTradingV2();
+      console.log('[DEBUG] Estimated gas:', estimatedGas.toString());
+    } catch (gasError) {
+      console.log('[DEBUG] Gas estimation failed:', gasError instanceof Error ? gasError.message : 'Unknown error');
+    }
+    
     if (nonce !== undefined) tx.nonce = nonce;
     if (gasLimit !== undefined) tx.gasLimit = BigNumber.from(gasLimit);
     if (gasPrice !== undefined) tx.gasPrice = BigNumber.from(gasPrice);
+    
+    console.log('[DEBUG] Final transaction nonce:', tx.nonce);
+    console.log('[DEBUG] Final transaction gas limit:', tx.gasLimit?.toString());
+    console.log('[DEBUG] Final transaction gas price:', tx.gasPrice?.toString());
+    console.log('===============================\n');
+    
     return { success: true, data: { tx } };
   } catch (error) {
+    console.log('[DEBUG] Error building openTradingV2 transaction:', error instanceof Error ? error.message : 'Unknown error');
+    console.log('[DEBUG] Full error:', error);
+    console.log('===============================\n');
     return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
   }
 }

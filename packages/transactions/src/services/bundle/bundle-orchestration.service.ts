@@ -72,16 +72,60 @@ export class BundleOrchestrationService {
 				fundingWalletPrivateKey: this.fundingWallet.privateKey
 			};
 
+			// DEBUG: Log initial wallet information
+			console.log('\n=== BUNDLE LAUNCH DEBUG INFO ===');
+			console.log('[DEBUG] Dev wallet address:', this.devWallet.address);
+			console.log('[DEBUG] Funding wallet address:', this.fundingWallet.address);
+			
+			const devWalletBalance = await this.provider.getBalance(this.devWallet.address);
+			const fundingWalletBalance = await this.provider.getBalance(this.fundingWallet.address);
+			const devWalletNonce = await this.provider.getTransactionCount(this.devWallet.address);
+			const fundingWalletNonce = await this.provider.getTransactionCount(this.fundingWallet.address);
+			
+			console.log('[DEBUG] Dev wallet ETH balance:', ethers.utils.formatEther(devWalletBalance));
+			console.log('[DEBUG] Funding wallet ETH balance:', ethers.utils.formatEther(fundingWalletBalance));
+			console.log('[DEBUG] Dev wallet nonce:', devWalletNonce);
+			console.log('[DEBUG] Funding wallet nonce:', fundingWalletNonce);
+			console.log('================================\n');
+
 			// Step 1: Generate bundle wallets
 			console.log('Generating bundle wallets...');
 			const bundleWallets = await this.generateBundleWallets(config.bundle_wallet_count);
 			this.bundleWallets = bundleWallets;
 			result.bundleWallets = bundleWallets;
 
-			// Step 2: Calculate amounts
+			// Step 2: Get token decimals and calculate amounts
+			const tokenContract = new ethers.Contract(
+				config.tokenAddress,
+				['function decimals() view returns (uint8)', 'function name() view returns (string)', 'function symbol() view returns (string)'],
+				this.provider
+			);
+			const tokenDecimals = await tokenContract.decimals();
+			const tokenName = await tokenContract.name();
+			const tokenSymbol = await tokenContract.symbol();
+			
+			console.log('\n=== TOKEN INFO ===');
+			console.log('[DEBUG] Token name:', tokenName);
+			console.log('[DEBUG] Token symbol:', tokenSymbol);
+			console.log('[DEBUG] Token decimals:', tokenDecimals);
+			console.log('==================\n');
+			
 			const totalSupply = ethers.BigNumber.from(config.tokenTotalSupply);
 			const tokensForClog = totalSupply.mul(100 - config.liquidity_token_percent).div(100);
 			const tokensForLiquidity = totalSupply.sub(tokensForClog);
+			
+			// DEBUG: Log token amount calculations
+			console.log('\n=== TOKEN AMOUNT CALCULATIONS ===');
+			console.log('[DEBUG] Total supply (wei):', totalSupply.toString());
+			console.log('[DEBUG] Total supply (tokens):', ethers.utils.formatUnits(totalSupply, tokenDecimals));
+			console.log('[DEBUG] Liquidity token percent:', config.liquidity_token_percent + '%');
+			console.log('[DEBUG] Tokens for clog (wei):', tokensForClog.toString());
+			console.log('[DEBUG] Tokens for clog (tokens):', ethers.utils.formatUnits(tokensForClog, tokenDecimals));
+			console.log('[DEBUG] Tokens for liquidity (wei):', tokensForLiquidity.toString());
+			console.log('[DEBUG] Tokens for liquidity (tokens):', ethers.utils.formatUnits(tokensForLiquidity, tokenDecimals));
+			console.log('[DEBUG] Liquidity ETH amount (wei):', config.liquidity_eth_amount);
+			console.log('[DEBUG] Liquidity ETH amount (ETH):', ethers.utils.formatEther(config.liquidity_eth_amount));
+			console.log('=====================================\n');
 			
 			// Calculate equal token distribution
 			console.log('Calculating equal token distribution...');
@@ -104,23 +148,22 @@ export class BundleOrchestrationService {
 				return { success: false, error: `Failed to calculate equal token distribution: ${equalDistributionResult.error}` };
 			}
 
+			const realDevNonce = await this.provider.getTransactionCount(this.devWallet.address)
+
 			const walletAmounts = equalDistributionResult.data.walletAmounts;
 			console.log(`Equal token distribution calculated: ${walletAmounts.length} wallets`);
 			result.walletAmounts = walletAmounts; // Store for position creation
 
-			// Get starting nonces for sequential management
-			let devNonce = await getNextNonce(this.provider, this.devWallet.address);
-			let fundingNonce = await getNextNonce(this.provider, this.fundingWallet.address);
-
 			// Step 1: Build fund wallet transactions FIRST (so wallets have ETH for approve/buy)
 			console.log('Building fund wallet transactions...');
+			let fundingNonce = await getNextNonce(this.provider, this.fundingWallet.address);
 			const fundTxs = await this.buildFundWalletTransactionsWithEqualDistribution(bundleWallets, walletAmounts, fundingNonce);
 			result.transactions.push(...fundTxs);
-			fundingNonce += fundTxs.length;
 
 			// Step 2: Build clog transfer transaction
 			console.log('Building clog transfer transaction...');
-			const clogTx = await this.buildClogTransfer(config.tokenAddress, tokensForClog, devNonce++);
+			let devNonce = await getNextNonce(this.provider, this.devWallet.address);
+			const clogTx = await this.buildClogTransfer(config.tokenAddress, tokensForClog, realDevNonce + 0);
 			if (!clogTx.success || !clogTx.data) {
 				return { success: false, error: `Failed to build clog transfer: ${clogTx.error}` };
 			}
@@ -128,56 +171,79 @@ export class BundleOrchestrationService {
 
 			// Step 3: Build create pair transaction
 			console.log('Building create pair transaction...');
-			const createPairTx = await this.buildCreatePair(config.tokenAddress, devNonce++);
+			devNonce = await getNextNonce(this.provider, this.devWallet.address);
+			const createPairTx = await this.buildCreatePair(config.tokenAddress, realDevNonce + 1);
 			if (!createPairTx.success || !createPairTx.data) {
 				return { success: false, error: `Failed to build create pair: ${createPairTx.error}` };
 			}
 			result.transactions.push(createPairTx.data);
 
-			// Step 4: Build add liquidity transaction
+			// Step 4: Build dev wallet approval for router (needed for add liquidity)
+			console.log('Building dev wallet approval for router...');
+			devNonce = await getNextNonce(this.provider, this.devWallet.address);
+			const devApprovalTx = await this.buildDevWalletApproval(config.tokenAddress, realDevNonce + 2);
+			if (!devApprovalTx.success || !devApprovalTx.data) {
+				return { success: false, error: `Failed to build dev wallet approval: ${devApprovalTx.error}` };
+			}
+			result.transactions.push(devApprovalTx.data);
+
+			// Step 5: Build add liquidity transaction
 			console.log('Building add liquidity transaction...');
+			devNonce = await getNextNonce(this.provider, this.devWallet.address);
 			const addLiquidityTx = await this.buildAddLiquidity(
 				config.tokenAddress,
 				tokensForLiquidity,
 				config.liquidity_eth_amount,
-				devNonce++
+				realDevNonce + 3
 			);
 			if (!addLiquidityTx.success || !addLiquidityTx.data) {
 				return { success: false, error: `Failed to build add liquidity: ${addLiquidityTx.error}` };
 			}
 			result.transactions.push(addLiquidityTx.data);
 
-			// Step 5: Build open trading transaction
+			// Step 6: Build open trading transaction (only if trading is not already open)
 			console.log('Building open trading transaction...');
-			const openTradingTx = await this.buildOpenTrading(config.tokenAddress, devNonce++);
+			devNonce = await getNextNonce(this.provider, this.devWallet.address);
+			const openTradingTx = await this.buildOpenTrading(config.tokenAddress, realDevNonce + 4);
 			if (!openTradingTx.success || !openTradingTx.data) {
-				return { success: false, error: `Failed to build open trading: ${openTradingTx.error}` };
+				console.log('[DEBUG] Skipping openTradingV2 transaction due to error:', openTradingTx.error);
+				// Don't fail the entire bundle, just skip this transaction
+				console.log('[DEBUG] Continuing with bundle without openTradingV2...');
+			} else {
+				result.transactions.push(openTradingTx.data);
 			}
-			result.transactions.push(openTradingTx.data);
 
-			// Step 6: Build exclude from fee transactions
+			// Step 7: Build exclude from fee transactions
 			console.log('Building exclude from fee transactions...');
-			const excludeTxs = await this.buildExcludeFromFeeTransactions(config.tokenAddress, bundleWallets, devNonce);
+			const excludeTxs = await this.buildExcludeFromFeeTransactions(config.tokenAddress, bundleWallets);
 			result.transactions.push(...excludeTxs);
-			devNonce += excludeTxs.length;
 
-			// Step 7: Build approval transactions for bundle wallets (now wallets have ETH)
+			// Step 8: Build approval transactions for bundle wallets (now wallets have ETH)
 			console.log('Building approval transactions...');
 			const approvalTxs = await this.buildApprovalTransactions(config.tokenAddress, bundleWallets);
 			result.transactions.push(...approvalTxs);
 
-			// Step 8: Build buy transactions for bundle wallets (now wallets have ETH)
+			// Step 9: Build buy transactions for bundle wallets (now wallets have ETH)
 			console.log('Building buy transactions...');
 			const buyTxs = await this.buildBuyTransactionsWithEqualDistribution(config.tokenAddress, bundleWallets, walletAmounts);
 			result.transactions.push(...buyTxs);
 
-			// Step 9: Sign all transactions
+			// Step 10: Sign all transactions
 			console.log('Signing transactions...');
 			const signedTxs = await this.signAllTransactions(result.transactions);
 			result.signedTransactions = signedTxs;
 
-			// Step 10: Calculate total gas estimate
+			// Step 11: Calculate total gas estimate
 			result.totalGasEstimate = this.calculateTotalGasEstimate(result.transactions);
+
+			// DEBUG: Log transaction summary
+			console.log('\n=== TRANSACTION SUMMARY ===');
+			console.log('[DEBUG] Total transactions:', result.transactions.length);
+			console.log('[DEBUG] Transaction order:');
+			result.transactions.forEach((tx, index) => {
+				console.log(`[DEBUG] ${index + 1}. ${tx.type}: ${tx.description}`);
+			});
+			console.log('===========================\n');
 
 			return { success: true, data: result };
 		} catch (error) {
@@ -211,8 +277,34 @@ export class BundleOrchestrationService {
 		amount: ethers.BigNumber,
 		nonce: number
 	): Promise<ServiceResponse<BundleLaunchTransaction>> {
+		// DEBUG: Log signer information before building clog transfer
+		console.log('\n=== CLOG TRANSFER DEBUG ===');
+		console.log('[DEBUG] Building clog transfer transaction with:');
+		console.log('[DEBUG] - Token address:', tokenAddress);
+		console.log('[DEBUG] - Amount (wei):', amount.toString());
+		// Get token decimals for proper formatting
+		const tokenContract = new ethers.Contract(
+			tokenAddress,
+			['function decimals() view returns (uint8)'],
+			this.provider
+		);
+		const tokenDecimals = await tokenContract.decimals();
+		console.log('[DEBUG] - Amount (tokens):', ethers.utils.formatUnits(amount, tokenDecimals));
+		console.log('[DEBUG] - Nonce:', nonce);
+		console.log('[DEBUG] - Signer address:', this.devWallet.address);
+		
+		const signerBalance = await this.provider.getBalance(this.devWallet.address);
+		const signerNonce = await this.provider.getTransactionCount(this.devWallet.address);
+		console.log('[DEBUG] - Signer ETH balance:', ethers.utils.formatEther(signerBalance));
+		console.log('[DEBUG] - Signer current nonce:', signerNonce);
+		console.log('[DEBUG] - Expected nonce:', nonce);
+		console.log('[DEBUG] - Nonce match:', signerNonce === nonce ? '✅ YES' : '❌ NO');
+		
 		const gasPrice = await this.provider.getGasPrice();
 		const gasLimit = ethers.BigNumber.from('100000'); // Standard gas limit for ERC20 transfer
+		console.log('[DEBUG] - Gas price:', gasPrice.toString());
+		console.log('[DEBUG] - Gas limit:', gasLimit.toString());
+		console.log('=============================\n');
 
 		const result = await buildClogTransferTx({
 			signer: this.devWallet,
@@ -242,13 +334,78 @@ export class BundleOrchestrationService {
 	 * Build create pair transaction
 	 */
 	private async buildCreatePair(tokenAddress: string, nonce: number): Promise<ServiceResponse<BundleLaunchTransaction>> {
+		// DEBUG: Log signer information before building createPair transaction
+		console.log('\n=== CREATEPAIR TRANSACTION DEBUG ===');
+		console.log('[DEBUG] Building createPair transaction with:');
+		console.log('[DEBUG] - Token address:', tokenAddress);
+		console.log('[DEBUG] - Nonce:', nonce);
+		console.log('[DEBUG] - Signer address:', this.devWallet.address);
+		
+		const signerBalance = await this.provider.getBalance(this.devWallet.address);
+		const signerNonce = await this.provider.getTransactionCount(this.devWallet.address);
+		console.log('[DEBUG] - Signer ETH balance:', ethers.utils.formatEther(signerBalance));
+		console.log('[DEBUG] - Signer current nonce:', signerNonce);
+		console.log('[DEBUG] - Expected nonce:', nonce);
+		console.log('[DEBUG] - Nonce match:', signerNonce === nonce ? '✅ YES' : '❌ NO');
+		
 		const gasPrice = await this.provider.getGasPrice();
-		const gasLimit = ethers.BigNumber.from('200000'); // Standard gas limit for create pair
+		const gasLimit = ethers.BigNumber.from('5000000'); // 2.5M gas for create pair (Uniswap V2 is expensive)
+		console.log('[DEBUG] - Gas price:', gasPrice.toString());
+		console.log('[DEBUG] - Gas limit:', gasLimit.toString());
+		console.log('=====================================\n');
+
+		const WETH_ADDRESS = '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2';
+		
+		// TEMPORARY DEBUG CHECK: Verify Uniswap V2 Factory is accessible
+		try {
+			const factory = new ethers.Contract(
+				'0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f',
+				['function getPair(address, address) view returns (address)', 'function allPairs(uint) view returns (address)'],
+				this.provider
+			);
+			const pairCount = await factory.allPairs(0); // This will fail if factory is not accessible
+			console.log('[DEBUG] Uniswap V2 Factory is accessible');
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+			console.log('[DEBUG] Uniswap V2 Factory verification failed:', errorMessage);
+			return { success: false, error: 'Uniswap V2 Factory verification failed: ' + errorMessage };
+		}
+		
+		// TEMPORARY DEBUG CHECK: See if the pair already exists before trying to create it
+		const factory = new ethers.Contract(
+			'0x5c69bee701ef814a2b6a3edd4b1652cb9cc5aa6f',
+			['function getPair(address, address) view returns (address)'],
+			this.provider
+		);
+		const pairAddress = await factory.getPair(tokenAddress, WETH_ADDRESS);
+		console.log('[DEBUG] Checking if Uniswap pair exists for', tokenAddress, 'and WETH:', WETH_ADDRESS, '->', pairAddress);
+		if (pairAddress !== ethers.constants.AddressZero) {
+			console.log('[DEBUG] Pair already exists, skipping createPair');
+			return { success: false, error: 'Pair already exists! (TEMPORARY DEBUG CHECK)' };
+		}
+
+		// TEMPORARY DEBUG CHECK: Verify token contract exists and is valid
+		try {
+			const tokenContract = new ethers.Contract(
+				tokenAddress,
+				['function name() view returns (string)', 'function symbol() view returns (string)'],
+				this.provider
+			);
+			const tokenName = await tokenContract.name();
+			const tokenSymbol = await tokenContract.symbol();
+			console.log('[DEBUG] Token contract verified:', tokenName, '(', tokenSymbol, ')');
+		} catch (error) {
+			const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+			console.log('[DEBUG] Token contract verification failed:', errorMessage);
+			return { success: false, error: 'Token contract verification failed: ' + errorMessage };
+		}
+
+		console.log('[DEBUG] Creating pair for token:', tokenAddress, 'and WETH:', WETH_ADDRESS);
 
 		const result = await buildUniswapCreatePairTx({
 			signer: this.devWallet,
 			tokenA: tokenAddress,
-			tokenB: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
+			tokenB: WETH_ADDRESS,
 			nonce,
 			gasLimit,
 			gasPrice,
@@ -256,14 +413,74 @@ export class BundleOrchestrationService {
 		});
 
 		if (!result.success || !result.data) {
+			console.log('[DEBUG] Failed to build createPair transaction:', result.error);
 			return { success: false, error: result.error || 'Failed to build create pair' };
 		}
+
+		// TEMPORARY DEBUG CHECK: Log transaction details
+		console.log('[DEBUG] CreatePair transaction built successfully');
+		console.log('[DEBUG] Transaction data:', result.data.tx.data);
+		console.log('[DEBUG] Gas limit:', result.data.tx.gasLimit?.toString());
+		console.log('[DEBUG] Gas price:', result.data.tx.gasPrice?.toString());
+		console.log('[DEBUG] Nonce:', result.data.tx.nonce);
 
 		return {
 			success: true,
 			data: {
 				type: 'create_pair',
 				description: 'Create Uniswap V2 pair for token/WETH',
+				transaction: result.data.tx
+			}
+		};
+	}
+
+	/**
+	 * Build dev wallet approval for Uniswap Router
+	 */
+	private async buildDevWalletApproval(
+		tokenAddress: string,
+		nonce: number
+	): Promise<ServiceResponse<BundleLaunchTransaction>> {
+		// DEBUG: Log signer information before building dev wallet approval
+		console.log('\n=== DEV WALLET APPROVAL DEBUG ===');
+		console.log('[DEBUG] Building dev wallet approval transaction with:');
+		console.log('[DEBUG] - Token address:', tokenAddress);
+		console.log('[DEBUG] - Nonce:', nonce);
+		console.log('[DEBUG] - Signer address:', this.devWallet.address);
+		
+		const signerBalance = await this.provider.getBalance(this.devWallet.address);
+		const signerNonce = await this.provider.getTransactionCount(this.devWallet.address);
+		console.log('[DEBUG] - Signer ETH balance:', ethers.utils.formatEther(signerBalance));
+		console.log('[DEBUG] - Signer current nonce:', signerNonce);
+		console.log('[DEBUG] - Expected nonce:', nonce);
+		console.log('[DEBUG] - Nonce match:', signerNonce === nonce ? '✅ YES' : '❌ NO');
+		
+		const gasPrice = await this.provider.getGasPrice();
+		const gasLimit = ethers.BigNumber.from('100000'); // 100K gas for approve
+		console.log('[DEBUG] - Gas price:', gasPrice.toString());
+		console.log('[DEBUG] - Gas limit:', gasLimit.toString());
+		console.log('===================================\n');
+
+		const maxApproval = ethers.constants.MaxUint256;
+		const result = await buildApproveRouterTx({
+			signer: this.devWallet,
+			tokenAddress,
+			amount: maxApproval,
+			nonce,
+			gasLimit,
+			gasPrice,
+			network: config.NETWORK
+		});
+
+		if (!result.success || !result.data) {
+			return { success: false, error: result.error || 'Failed to build dev wallet approval' };
+		}
+
+		return {
+			success: true,
+			data: {
+				type: 'dev_wallet_approval',
+				description: 'Approve Uniswap Router for dev wallet (needed for add liquidity)',
 				transaction: result.data.tx
 			}
 		};
@@ -278,9 +495,38 @@ export class BundleOrchestrationService {
 		ethAmount: string,
 		nonce: number
 	): Promise<ServiceResponse<BundleLaunchTransaction>> {
+		// DEBUG: Log signer information before building add liquidity
+		console.log('\n=== ADD LIQUIDITY DEBUG ===');
+		console.log('[DEBUG] Building add liquidity transaction with:');
+		console.log('[DEBUG] - Token address:', tokenAddress);
+		console.log('[DEBUG] - Token amount (wei):', tokenAmount.toString());
+		// Get token decimals for proper formatting
+		const tokenContract = new ethers.Contract(
+			tokenAddress,
+			['function decimals() view returns (uint8)'],
+			this.provider
+		);
+		const tokenDecimals = await tokenContract.decimals();
+		console.log('[DEBUG] - Token amount (tokens):', ethers.utils.formatUnits(tokenAmount, tokenDecimals));
+		console.log('[DEBUG] - ETH amount (wei):', ethAmount);
+		console.log('[DEBUG] - ETH amount (ETH):', ethers.utils.formatEther(ethAmount));
+		console.log('[DEBUG] - Nonce:', nonce);
+		console.log('[DEBUG] - Signer address:', this.devWallet.address);
+		
+		const signerBalance = await this.provider.getBalance(this.devWallet.address);
+		const signerNonce = await this.provider.getTransactionCount(this.devWallet.address);
+		console.log('[DEBUG] - Signer ETH balance:', ethers.utils.formatEther(signerBalance));
+		console.log('[DEBUG] - Signer current nonce:', signerNonce);
+		console.log('[DEBUG] - Expected nonce:', nonce);
+		console.log('[DEBUG] - Nonce match:', signerNonce === nonce ? '✅ YES' : '❌ NO');
+		
 		const gasPrice = await this.provider.getGasPrice();
-		const gasLimit = ethers.BigNumber.from('300000'); // Standard gas limit for add liquidity
+		const gasLimit = ethers.BigNumber.from('700000'); // 700K gas for add liquidity
 		const deadline = calculateDeadline(60); // 1 hour from now
+		console.log('[DEBUG] - Gas price:', gasPrice.toString());
+		console.log('[DEBUG] - Gas limit:', gasLimit.toString());
+		console.log('[DEBUG] - Deadline:', deadline);
+		console.log('==============================\n');
 
 		const result = await buildAddLiquidityETH({
 			signer: this.devWallet,
@@ -321,9 +567,19 @@ export class BundleOrchestrationService {
 		const gasPrice = await this.provider.getGasPrice();
 		const gasLimit = ethers.BigNumber.from('21000'); // Standard gas limit for ETH transfer
 
+		// DEBUG: Log funding wallet information
+		console.log('\n=== FUND WALLET TRANSACTIONS DEBUG ===');
+		console.log('[DEBUG] Funding wallet address:', this.fundingWallet.address);
+		console.log('[DEBUG] Starting nonce:', startingNonce);
+		console.log('[DEBUG] Number of wallets to fund:', wallets.length);
+		console.log('========================================\n');
+
 		for (let i = 0; i < wallets.length; i++) {
 			const wallet = wallets[i];
 			const walletAmount = walletAmounts[i];
+			
+			// DEBUG: Log each wallet funding amount
+			console.log(`[DEBUG] Funding wallet ${i + 1}: ${ethers.utils.formatEther(walletAmount.ethAmount)} ETH (${walletAmount.ethAmount.toString()} wei)`);
 			const result = await buildEthTransferTx({
 				signer: this.fundingWallet,
 				to: wallet.address,
@@ -351,20 +607,22 @@ export class BundleOrchestrationService {
 	 */
 	private async buildExcludeFromFeeTransactions(
 		tokenAddress: string,
-		wallets: BundleWallet[],
-		startingNonce: number
+		wallets: BundleWallet[]
 	): Promise<BundleLaunchTransaction[]> {
 		const transactions: BundleLaunchTransaction[] = [];
 		const gasPrice = await this.provider.getGasPrice();
-		const gasLimit = ethers.BigNumber.from('50000'); // Standard gas limit for exclude from fee
+		const gasLimit = ethers.BigNumber.from('100000'); // 100K gas for exclude from fee
 
 		for (let i = 0; i < wallets.length; i++) {
 			const wallet = wallets[i];
+			// Get current nonce for each transaction
+			const currentNonce = await getNextNonce(this.provider, this.devWallet.address);
+			
 			const result = await buildExcludeFromFeeTx({
 				signer: this.devWallet,
 				tokenAddress,
 				walletAddress: wallet.address,
-				nonce: startingNonce + i,
+				nonce: currentNonce,
 				gasLimit,
 				gasPrice
 			});
@@ -386,8 +644,25 @@ export class BundleOrchestrationService {
 	 * Build open trading V2 transaction (simplified version without automatic liquidity)
 	 */
 	private async buildOpenTrading(tokenAddress: string, nonce: number): Promise<ServiceResponse<BundleLaunchTransaction>> {
+		// DEBUG: Log signer information before building open trading
+		console.log('\n=== OPEN TRADING DEBUG ===');
+		console.log('[DEBUG] Building open trading transaction with:');
+		console.log('[DEBUG] - Token address:', tokenAddress);
+		console.log('[DEBUG] - Nonce:', nonce);
+		console.log('[DEBUG] - Signer address:', this.devWallet.address);
+		
+		const signerBalance = await this.provider.getBalance(this.devWallet.address);
+		const signerNonce = await this.provider.getTransactionCount(this.devWallet.address);
+		console.log('[DEBUG] - Signer ETH balance:', ethers.utils.formatEther(signerBalance));
+		console.log('[DEBUG] - Signer current nonce:', signerNonce);
+		console.log('[DEBUG] - Expected nonce:', nonce);
+		console.log('[DEBUG] - Nonce match:', signerNonce === nonce ? '✅ YES' : '❌ NO');
+		
 		const gasPrice = await this.provider.getGasPrice();
-		const gasLimit = ethers.BigNumber.from('50000'); // Standard gas limit for open trading
+		const gasLimit = ethers.BigNumber.from('1000000'); // 100K gas for open trading
+		console.log('[DEBUG] - Gas price:', gasPrice.toString());
+		console.log('[DEBUG] - Gas limit:', gasLimit.toString());
+		console.log('============================\n');
 
 		const result = await buildOpenTradingV2Tx({
 			signer: this.devWallet,
@@ -420,7 +695,7 @@ export class BundleOrchestrationService {
 	): Promise<BundleLaunchTransaction[]> {
 		const transactions: BundleLaunchTransaction[] = [];
 		const gasPrice = await this.provider.getGasPrice();
-		const gasLimit = ethers.BigNumber.from('50000'); // Standard gas limit for approve
+		const gasLimit = ethers.BigNumber.from('100000'); // 100K gas for approve
 
 		for (const wallet of wallets) {
 			const walletSigner = new ethers.Wallet(wallet.privateKey, this.provider);
@@ -461,7 +736,7 @@ export class BundleOrchestrationService {
 		const transactions: BundleLaunchTransaction[] = [];
 		const deadline = calculateDeadline(60); // 1 hour from now
 		const gasPrice = await this.provider.getGasPrice();
-		const gasLimit = ethers.BigNumber.from('200000'); // Standard gas limit for swap
+		const gasLimit = ethers.BigNumber.from('700000'); // 700K gas for complex swaps
 
 		for (let i = 0; i < wallets.length; i++) {
 			const wallet = wallets[i];

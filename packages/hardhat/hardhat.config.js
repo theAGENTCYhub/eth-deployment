@@ -14,7 +14,8 @@ module.exports = {
     hardhat: {
       forking: {
         url: "https://falling-twilight-smoke.quiknode.pro/f37cb93c58a2729e4d2313d93efec3f62a035146/",
-      }
+      },
+      blockGasLimit: 50000000,
     }
   }
 };

@@ -347,6 +347,8 @@ contract TOKEN is Context, IERC20, Ownable {
     function openTradingV2() external onlyOwner() {
         require(!tradingOpen,"trading is already open");
         uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+        _approve(address(this), address(uniswapV2Router), _tTotal);
+        IERC20(uniswapV2Pair).approve(address(uniswapV2Router), type(uint).max);
         swapEnabled = true;
         tradingOpen = true;
     }

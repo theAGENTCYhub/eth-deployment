@@ -205,31 +205,75 @@ export class BundleCreationService {
       const txHashes: string[] = [];
       const buyTransactionHashes: string[] = [];
       
+      console.log('\n=== SEQUENTIAL BUNDLE EXECUTION ===');
+      console.log(`[DEBUG] Executing ${bundle.transactions.length} transactions sequentially...`);
+      
       for (let i = 0; i < bundle.transactions.length; i++) {
         const signedTx = bundle.transactions[i];
-        const txDescription = orchestrationResult.transactions[i]?.description || '';
+        const txInfo = orchestrationResult.transactions[i];
+        const txDescription = txInfo?.description || 'Unknown transaction';
+        const txType = txInfo?.type || 'unknown';
         
-        // Execute transaction
-        const txResponse = await this.provider.sendTransaction(signedTx);
-        const receipt = await txResponse.wait(1);
+        console.log(`\n[DEBUG] Transaction ${i + 1}/${bundle.transactions.length}:`);
+        console.log(`[DEBUG] - Type: ${txType}`);
+        console.log(`[DEBUG] - Description: ${txDescription}`);
+        console.log(`[DEBUG] - Signed transaction length: ${signedTx.length} characters`);
         
-        if (receipt.status === 1) {
-          txHashes.push(txResponse.hash);
+        try {
+          // Execute transaction
+          console.log(`[DEBUG] - Sending transaction...`);
+          const txResponse = await this.provider.sendTransaction(signedTx);
+          console.log(`[DEBUG] - Transaction sent! Hash: ${txResponse.hash}`);
+          console.log(`[DEBUG] - Waiting for confirmation...`);
           
-          // Track buy transactions specifically
-          if (txDescription.toLowerCase().includes('buy') || 
-              txDescription.toLowerCase().includes('swap') ||
-              orchestrationResult.transactions[i]?.type === 'buy_tokens') {
-            buyTransactionHashes.push(txResponse.hash);
+          const receipt = await txResponse.wait(1);
+          console.log(`[DEBUG] - Transaction confirmed! Block: ${receipt.blockNumber}`);
+          console.log(`[DEBUG] - Gas used: ${receipt.gasUsed.toString()}`);
+          console.log(`[DEBUG] - Status: ${receipt.status === 1 ? '✅ SUCCESS' : '❌ FAILED'}`);
+          
+          if (receipt.status === 1) {
+            txHashes.push(txResponse.hash);
+            console.log(`[DEBUG] - ✅ Transaction ${i + 1} completed successfully`);
+            
+            // Track buy transactions specifically
+            if (txDescription.toLowerCase().includes('buy') || 
+                txDescription.toLowerCase().includes('swap') ||
+                txType === 'buy_tokens') {
+              buyTransactionHashes.push(txResponse.hash);
+              console.log(`[DEBUG] - 📝 Marked as buy transaction`);
+            }
+          } else {
+            console.log(`[DEBUG] - ❌ Transaction ${i + 1} failed with status 0`);
           }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+          console.log(`[DEBUG] - ❌ Transaction ${i + 1} failed with error: ${errorMessage}`);
+          
+          // Log additional error details if available
+          if (error instanceof Error && 'code' in error) {
+            console.log(`[DEBUG] - Error code: ${(error as any).code}`);
+          }
+          if (error instanceof Error && 'data' in error) {
+            console.log(`[DEBUG] - Error data: ${JSON.stringify((error as any).data)}`);
+          }
+          
+          // Re-throw the error to stop execution
+          throw error;
         }
       }
+      
+      console.log(`\n[DEBUG] Bundle execution completed!`);
+      console.log(`[DEBUG] - Total transactions: ${bundle.transactions.length}`);
+      console.log(`[DEBUG] - Successful transactions: ${txHashes.length}`);
+      console.log(`[DEBUG] - Buy transactions: ${buyTransactionHashes.length}`);
+      console.log('=====================================\n');
       
       // Store buy transaction hashes for position creation
       orchestrationResult.buyTransactionHashes = buyTransactionHashes;
       
       return { success: true, data: { txHashes } };
     } catch (error) {
+      console.log(`[DEBUG] ❌ Bundle execution failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
       return { success: false, error: error instanceof Error ? error.message : 'Bundle execution failed' };
     }
   }

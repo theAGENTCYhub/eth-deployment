@@ -51,7 +51,21 @@ export class BundleCalculationService {
       // Calculate target tokens per wallet (e.g., 2% of supply per wallet)
       const targetTokensPerWallet = totalTokensToDistribute / BigInt(walletCount);
       
-      console.log(`Target tokens per wallet: ${ethers.utils.formatUnits(targetTokensPerWallet, 9)}`);
+      // Get token decimals for proper formatting
+      const tokenContract = new ethers.Contract(
+        tokenAddress,
+        ['function decimals() view returns (uint8)'],
+        signer.provider
+      );
+      const tokenDecimals = await tokenContract.decimals();
+      
+      console.log('\n=== BUNDLE CALCULATION DEBUG ===');
+      console.log('[DEBUG] Total tokens to distribute (wei):', totalTokensToDistribute.toString());
+      console.log('[DEBUG] Total tokens to distribute (tokens):', ethers.utils.formatUnits(totalTokensToDistribute, tokenDecimals));
+      console.log('[DEBUG] Wallet count:', walletCount);
+      console.log('[DEBUG] Target tokens per wallet (wei):', targetTokensPerWallet.toString());
+      console.log('[DEBUG] Target tokens per wallet (tokens):', ethers.utils.formatUnits(targetTokensPerWallet, tokenDecimals));
+      console.log('=====================================\n');
 
       // Initialize router contract
       const routerABI = [
@@ -106,7 +120,7 @@ export class BundleCalculationService {
             expectedTokens
           });
 
-          console.log(`Wallet ${i + 1}: ${ethers.utils.formatEther(wallet.ethAmount)} ETH → ${ethers.utils.formatUnits(expectedTokens, 9)} tokens`);
+          console.log(`Wallet ${i + 1}: ${ethers.utils.formatEther(wallet.ethAmount)} ETH → ${ethers.utils.formatUnits(expectedTokens, tokenDecimals)} tokens (${expectedTokens.toString()} wei)`);
         }
 
         // Check if all wallets are close to target
@@ -172,6 +186,19 @@ export class BundleCalculationService {
       const priceImpact = firstWallet.ethAmount > BigInt(0) 
         ? Number((lastWallet.ethAmount - firstWallet.ethAmount) * BigInt(10000) / firstWallet.ethAmount) / 100
         : 0;
+
+      // DEBUG: Log final calculation results
+      console.log('\n=== FINAL CALCULATION RESULTS ===');
+      console.log('[DEBUG] Total ETH required (wei):', totalEthRequired.toString());
+      console.log('[DEBUG] Total ETH required (ETH):', ethers.utils.formatEther(totalEthRequired));
+      console.log('[DEBUG] Average ETH per wallet (wei):', averageEthPerWallet.toString());
+      console.log('[DEBUG] Average ETH per wallet (ETH):', ethers.utils.formatEther(averageEthPerWallet));
+      console.log('[DEBUG] Price impact:', priceImpact.toFixed(2) + '%');
+      console.log('\n[DEBUG] Final wallet breakdown:');
+      for (const wallet of walletAmounts) {
+        console.log(`[DEBUG] - Wallet ${wallet.walletIndex + 1}: ${ethers.utils.formatEther(wallet.ethAmount)} ETH (${wallet.ethAmount.toString()} wei) → ${ethers.utils.formatUnits(wallet.expectedTokens, tokenDecimals)} tokens (${wallet.expectedTokens.toString()} wei)`);
+      }
+      console.log('===================================\n');
 
       const result: EqualTokenDistributionResult = {
         walletAmounts,
