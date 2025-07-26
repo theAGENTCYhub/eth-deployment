@@ -45,6 +45,49 @@ export type {
 // Export bundle calculations utility
 export { estimateBundleLaunch } from './utils/bundle-calculations';
 
+// Export trading services
+export { TradingService } from './services/trading/trading.service';
+export type { 
+  TradingConfig, 
+  BuyTokensRequest, 
+  SellTokensRequest, 
+  TradingResult, 
+  TradingQuote 
+} from './services/trading/trading.service';
+
+// Export calculation services
+export { PnLCalculatorService } from './services/calculations/pnl-calculator.service';
+export type { 
+  Position, 
+  PnLCalculation, 
+  PortfolioCalculation 
+} from './services/calculations/pnl-calculator.service';
+
+export { PortfolioCalculatorService } from './services/calculations/portfolio-calculator.service';
+export type { 
+  PortfolioMetrics, 
+  PortfolioAnalytics, 
+  PositionAllocation 
+} from './services/calculations/portfolio-calculator.service';
+
+// Export pricing services
+export { TokenPriceService } from './services/pricing/token-price.service';
+export type { 
+  TokenPrice, 
+  TokenPriceConfig, 
+  PriceQuote 
+} from './services/pricing/token-price.service';
+
+// Export launch management services
+export { LiquidityManagementService } from './services/launch-management/liquidity-management.service';
+export type { 
+  LiquidityConfig, 
+  AddLiquidityRequest, 
+  RemoveLiquidityRequest, 
+  LiquidityResult, 
+  LiquidityPoolInfo 
+} from './services/launch-management/liquidity-management.service';
+
 // Export transaction builders
 export {
   buildERC20TransferTx,

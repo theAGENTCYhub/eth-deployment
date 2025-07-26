@@ -14,9 +14,9 @@
     "test:equal-distribution": "npx ts-node test-equal-distribution.ts"
   },
   "dependencies": {
+    "@eth-deployer/supabase": "workspace:*",
     "dotenv": "^17.2.0",
-    "ethers": "5.7.2",
-    "@eth-deployer/supabase": "workspace:*"
+    "ethers": "5.7.2"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

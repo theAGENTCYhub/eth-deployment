@@ -32,6 +32,7 @@ export interface BundleLaunchResponse {
 
 export class BundleService {
   private provider: ethers.providers.Provider;
+  private network: NetworkType;
   private orchestrationService: BundleOrchestrationService;
   private creationService: BundleCreationService;
   private calculationService: BundleCalculationService;
@@ -44,6 +45,7 @@ export class BundleService {
     fundingWalletPrivateKey: string
   ) {
     this.provider = provider;
+    this.network = network;
     this.orchestrationService = new BundleOrchestrationService(
       provider,
       devWalletPrivateKey,
@@ -449,12 +451,11 @@ export class BundleService {
         bundle_token_percent_per_wallet: config.bundle_token_percent_per_wallet,
         liquidity_eth_amount: config.liquidity_eth_amount,
         liquidity_token_percent: config.liquidity_token_percent,
-        network: bundleResult.type,
+        network: this.network,
         status: 'completed',
         transaction_hashes: executionResult.txHashes || [],
         bundle_hash: executionResult.bundleHash || null,
-        total_gas_estimate: bundleResult.totalGasEstimate,
-        estimated_cost: bundleResult.estimatedCost
+        total_cost: bundleResult.estimatedCost
       };
 
       const launchResult = await this.databaseService.createBundleLaunch(launchData);
@@ -473,7 +474,6 @@ export class BundleService {
           launch_id: launchId,
           wallet_address: wallet.address,
           private_key_encrypted: wallet.privateKey, // TODO: Encrypt this
-          wallet_index: wallet.index,
           is_funded: true
         };
 
@@ -501,7 +501,7 @@ export class BundleService {
           launch_id: launchId,
           wallet_address: wallet.address,
           token_address: config.tokenAddress,
-          token_amount: '0', // TODO: Get actual token amount from blockchain
+          amount: '0', // TODO: Get actual token amount from blockchain
           eth_spent: '0', // TODO: Get actual ETH spent from blockchain
           status: 'completed'
         };
@@ -511,7 +511,7 @@ export class BundleService {
           positions.push({
             id: positionResult.data.id,
             walletAddress: wallet.address,
-            tokenAmount: positionData.token_amount,
+            tokenAmount: positionData.amount,
             ethSpent: positionData.eth_spent
           });
         } else {

@@ -3,12 +3,14 @@ import { DeploymentScreens } from './deployment.screens';
 import { WalletScreens } from './wallet.screens';
 import { ParameterEditingScreens } from './parameter-editing.screens';
 import { GeneralScreens } from './general.screens';
+import { LaunchesScreens } from './launches/launches.screens';
 
 // Export screen classes
 export { DeploymentScreens } from './deployment.screens';
 export { WalletScreens } from './wallet.screens';
 export { ParameterEditingScreens } from './parameter-editing.screens';
 export { GeneralScreens } from './general.screens';
+export { LaunchesScreens } from './launches/launches.screens';
 
 // Types
 export type { ScreenContent } from './types';
@@ -45,6 +47,12 @@ export class BotScreens {
     static getCompilationSuccessScreen = DeploymentScreens.getCompilationSuccessScreen;
     static getDeploymentSuccessScreen = DeploymentScreens.getDeploymentSuccessScreen;
     static getDeploymentErrorScreen = DeploymentScreens.getDeploymentErrorScreen;
+
+    // Launches screens
+    static getLaunchesListScreen = LaunchesScreens.getLaunchesListScreen;
+    static getLaunchManagementScreen = LaunchesScreens.getLaunchManagementScreen;
+    static getPositionsListScreen = LaunchesScreens.getPositionsListScreen;
+    static getPositionDetailScreen = LaunchesScreens.getPositionDetailScreen;
 
     /**
      * Format a screen content object into a Telegram message string

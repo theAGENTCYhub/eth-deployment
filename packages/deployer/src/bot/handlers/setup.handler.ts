@@ -135,6 +135,10 @@ Current network: ${process.env.NETWORK || 'Local'}
     bot.action('action_wallets', WalletHandlers.showWalletMain);
     bot.action('action_contracts', ContractsHandler.showContractsMain);
     bot.action('action_settings', ConfigurationsHandler.listConfigs);
+    bot.action('action_launches', async (ctx) => {
+      const { LaunchesHandler } = await import('./launches/launches.handler');
+      await LaunchesHandler.showLaunchesList(ctx);
+    });
 
     // Contracts handlers
     bot.action('contracts_view_deployed', async (ctx) => {
@@ -198,6 +202,112 @@ bot.action('bundle_edit_devwallet', async (ctx) => BundleLaunchHandler.handleEdi
     bot.action(/^bundle_select_wallet_fundingWallet_(.+)$/, async (ctx) => {
       const walletId = ctx.match[1];
       await BundleLaunchHandler.handleSelectWallet(ctx, 'fundingWallet', walletId);
+    });
+
+    // Launches handlers
+    bot.action(/^launch_detail_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const { LaunchesHandler } = await import('./launches/launches.handler');
+      await LaunchesHandler.showLaunchDetail(ctx, launchId);
+    });
+
+    bot.action(/^launch_management_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const { LaunchesHandler } = await import('./launches/launches.handler');
+      await LaunchesHandler.showLaunchManagement(ctx, launchId);
+    });
+
+    bot.action(/^launches_page_(\d+)$/, async (ctx) => {
+      const page = parseInt(ctx.match[1]);
+      const { LaunchesHandler } = await import('./launches/launches.handler');
+      await LaunchesHandler.handleLaunchesPagination(ctx, page);
+    });
+
+    // Positions handlers
+    bot.action(/^launch_positions_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const { PositionsHandler } = await import('./launches/positions.handler');
+      await PositionsHandler.showPositionsList(ctx, launchId);
+    });
+
+    bot.action(/^positions_page_(.+)_(\d+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const page = parseInt(ctx.match[2]);
+      const { PositionsHandler } = await import('./launches/positions.handler');
+      await PositionsHandler.handlePositionsPagination(ctx, launchId, page);
+    });
+
+    // Position detail handlers
+    bot.action(/^position_detail_(.+)_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const walletId = ctx.match[2];
+      const { PositionDetailHandler } = await import('./launches/position-detail.handler');
+      await PositionDetailHandler.showPositionDetail(ctx, launchId, walletId);
+    });
+
+    bot.action(/^position_mode_(buy|sell)_(.+)_(.+)$/, async (ctx) => {
+      const mode = ctx.match[1] as 'buy' | 'sell';
+      const launchId = ctx.match[2];
+      const walletId = ctx.match[3];
+      const { PositionDetailHandler } = await import('./launches/position-detail.handler');
+      await PositionDetailHandler.switchTradingMode(ctx, launchId, walletId, mode);
+    });
+
+    // Trading handlers
+    bot.action(/^trade_buy_(.+)_(.+)_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const walletId = ctx.match[2];
+      const amount = ctx.match[3];
+      const { PositionDetailHandler } = await import('./launches/position-detail.handler');
+      await PositionDetailHandler.initiateBuyTrade(ctx, launchId, walletId, amount);
+    });
+
+    bot.action(/^trade_sell_(.+)_(.+)_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const walletId = ctx.match[2];
+      const percentage = ctx.match[3];
+      const { PositionDetailHandler } = await import('./launches/position-detail.handler');
+      await PositionDetailHandler.initiateSellTrade(ctx, launchId, walletId, percentage);
+    });
+
+    bot.action(/^trade_slippage_(.+)_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const walletId = ctx.match[2];
+      const { PositionDetailHandler } = await import('./launches/position-detail.handler');
+      await PositionDetailHandler.showSlippageConfig(ctx, launchId, walletId);
+    });
+
+    bot.action(/^position_refresh_(.+)_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const walletId = ctx.match[2];
+      const { PositionDetailHandler } = await import('./launches/position-detail.handler');
+      await PositionDetailHandler.refreshPosition(ctx, launchId, walletId);
+    });
+
+    // Trade execution handlers
+    bot.action(/^trade_confirm_(.+)_(.+)_(buy|sell)_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const walletId = ctx.match[2];
+      const mode = ctx.match[3] as 'buy' | 'sell';
+      const amount = ctx.match[4];
+      const { TradingHandler } = await import('./launches/trading.handler');
+      await TradingHandler.executeTrade(ctx, launchId, walletId, mode, amount);
+    });
+
+    bot.action(/^trade_cancel_(.+)_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const walletId = ctx.match[2];
+      const { TradingHandler } = await import('./launches/trading.handler');
+      await TradingHandler.cancelTrade(ctx, launchId, walletId);
+    });
+
+    // Slippage setting handlers
+    bot.action(/^slippage_set_(.+)_(.+)_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const walletId = ctx.match[2];
+      const slippage = ctx.match[3];
+      const { TradingHandler } = await import('./launches/trading.handler');
+      await TradingHandler.setSlippage(ctx, launchId, walletId, slippage);
     });
     // Handle text input for bundle parameter editing
     bot.on('text', async (ctx, next) => {

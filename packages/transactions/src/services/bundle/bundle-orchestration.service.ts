@@ -12,6 +12,7 @@ import { buildAddLiquidityETH, buildBuyTokensWithEth } from '../../transactions/
 import { buildEthTransferTx } from '../../transactions/eth.transaction';
 import { generateBundleWallet, signTransaction, getNextNonce, calculateDeadline } from '../../utils/bundle-utils';
 import { BundleCalculationService, type EqualTokenDistributionConfig } from './bundle-calculation.service';
+import { config } from '../../config/env';
 
 export interface BundleWallet {
 	address: string;
@@ -101,68 +102,75 @@ export class BundleOrchestrationService {
 			const walletAmounts = equalDistributionResult.data.walletAmounts;
 			console.log(`Equal token distribution calculated: ${walletAmounts.length} wallets`);
 
-			// Step 3: Build clog transfer transaction
+			// Get starting nonces for sequential management
+			let devNonce = await getNextNonce(this.provider, this.devWallet.address);
+			let fundingNonce = await getNextNonce(this.provider, this.fundingWallet.address);
+
+			// Step 1: Build fund wallet transactions FIRST (so wallets have ETH for approve/buy)
+			console.log('Building fund wallet transactions...');
+			const fundTxs = await this.buildFundWalletTransactionsWithEqualDistribution(bundleWallets, walletAmounts, fundingNonce);
+			result.transactions.push(...fundTxs);
+			fundingNonce += fundTxs.length;
+
+			// Step 2: Build clog transfer transaction
 			console.log('Building clog transfer transaction...');
-			const clogTx = await this.buildClogTransfer(config.tokenAddress, tokensForClog);
+			const clogTx = await this.buildClogTransfer(config.tokenAddress, tokensForClog, devNonce++);
 			if (!clogTx.success || !clogTx.data) {
 				return { success: false, error: `Failed to build clog transfer: ${clogTx.error}` };
 			}
 			result.transactions.push(clogTx.data);
 
-			// Step 4: Build create pair transaction
+			// Step 3: Build create pair transaction
 			console.log('Building create pair transaction...');
-			const createPairTx = await this.buildCreatePair(config.tokenAddress);
+			const createPairTx = await this.buildCreatePair(config.tokenAddress, devNonce++);
 			if (!createPairTx.success || !createPairTx.data) {
 				return { success: false, error: `Failed to build create pair: ${createPairTx.error}` };
 			}
 			result.transactions.push(createPairTx.data);
 
-			// Step 5: Build add liquidity transaction
+			// Step 4: Build add liquidity transaction
 			console.log('Building add liquidity transaction...');
 			const addLiquidityTx = await this.buildAddLiquidity(
 				config.tokenAddress,
 				tokensForLiquidity,
-				config.liquidity_eth_amount
+				config.liquidity_eth_amount,
+				devNonce++
 			);
 			if (!addLiquidityTx.success || !addLiquidityTx.data) {
 				return { success: false, error: `Failed to build add liquidity: ${addLiquidityTx.error}` };
 			}
 			result.transactions.push(addLiquidityTx.data);
 
-			// Step 6: Build fund wallet transactions
-			console.log('Building fund wallet transactions...');
-			const fundTxs = await this.buildFundWalletTransactionsWithEqualDistribution(bundleWallets, walletAmounts);
-			result.transactions.push(...fundTxs);
-
-			// Step 7: Build exclude from fee transactions
-			console.log('Building exclude from fee transactions...');
-			const excludeTxs = await this.buildExcludeFromFeeTransactions(config.tokenAddress, bundleWallets);
-			result.transactions.push(...excludeTxs);
-
-			// Step 8: Build open trading transaction
+			// Step 5: Build open trading transaction
 			console.log('Building open trading transaction...');
-			const openTradingTx = await this.buildOpenTrading(config.tokenAddress);
+			const openTradingTx = await this.buildOpenTrading(config.tokenAddress, devNonce++);
 			if (!openTradingTx.success || !openTradingTx.data) {
 				return { success: false, error: `Failed to build open trading: ${openTradingTx.error}` };
 			}
 			result.transactions.push(openTradingTx.data);
 
-			// Step 9: Build approval transactions for bundle wallets
+			// Step 6: Build exclude from fee transactions
+			console.log('Building exclude from fee transactions...');
+			const excludeTxs = await this.buildExcludeFromFeeTransactions(config.tokenAddress, bundleWallets, devNonce);
+			result.transactions.push(...excludeTxs);
+			devNonce += excludeTxs.length;
+
+			// Step 7: Build approval transactions for bundle wallets (now wallets have ETH)
 			console.log('Building approval transactions...');
 			const approvalTxs = await this.buildApprovalTransactions(config.tokenAddress, bundleWallets);
 			result.transactions.push(...approvalTxs);
 
-			// Step 10: Build buy transactions for bundle wallets
+			// Step 8: Build buy transactions for bundle wallets (now wallets have ETH)
 			console.log('Building buy transactions...');
 			const buyTxs = await this.buildBuyTransactionsWithEqualDistribution(config.tokenAddress, bundleWallets, walletAmounts);
 			result.transactions.push(...buyTxs);
 
-			// Step 11: Sign all transactions
+			// Step 9: Sign all transactions
 			console.log('Signing transactions...');
 			const signedTxs = await this.signAllTransactions(result.transactions);
 			result.signedTransactions = signedTxs;
 
-			// Step 12: Calculate total gas estimate
+			// Step 10: Calculate total gas estimate
 			result.totalGasEstimate = this.calculateTotalGasEstimate(result.transactions);
 
 			return { success: true, data: result };
@@ -194,9 +202,9 @@ export class BundleOrchestrationService {
 	 */
 	private async buildClogTransfer(
 		tokenAddress: string,
-		amount: ethers.BigNumber
+		amount: ethers.BigNumber,
+		nonce: number
 	): Promise<ServiceResponse<BundleLaunchTransaction>> {
-		const nonce = await getNextNonce(this.provider, this.devWallet.address);
 		const gasPrice = await this.provider.getGasPrice();
 		const gasLimit = ethers.BigNumber.from('100000'); // Standard gas limit for ERC20 transfer
 
@@ -227,8 +235,7 @@ export class BundleOrchestrationService {
 	/**
 	 * Build create pair transaction
 	 */
-	private async buildCreatePair(tokenAddress: string): Promise<ServiceResponse<BundleLaunchTransaction>> {
-		const nonce = await getNextNonce(this.provider, this.devWallet.address);
+	private async buildCreatePair(tokenAddress: string, nonce: number): Promise<ServiceResponse<BundleLaunchTransaction>> {
 		const gasPrice = await this.provider.getGasPrice();
 		const gasLimit = ethers.BigNumber.from('200000'); // Standard gas limit for create pair
 
@@ -238,7 +245,8 @@ export class BundleOrchestrationService {
 			tokenB: '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2', // WETH
 			nonce,
 			gasLimit,
-			gasPrice
+			gasPrice,
+			network: config.NETWORK
 		});
 
 		if (!result.success || !result.data) {
@@ -261,9 +269,9 @@ export class BundleOrchestrationService {
 	private async buildAddLiquidity(
 		tokenAddress: string,
 		tokenAmount: ethers.BigNumber,
-		ethAmount: string
+		ethAmount: string,
+		nonce: number
 	): Promise<ServiceResponse<BundleLaunchTransaction>> {
-		const nonce = await getNextNonce(this.provider, this.devWallet.address);
 		const gasPrice = await this.provider.getGasPrice();
 		const gasLimit = ethers.BigNumber.from('300000'); // Standard gas limit for add liquidity
 		const deadline = calculateDeadline(60); // 1 hour from now
@@ -277,7 +285,8 @@ export class BundleOrchestrationService {
 			deadline,
 			nonce,
 			gasLimit,
-			gasPrice
+			gasPrice,
+			network: config.NETWORK
 		});
 
 		if (!result.success || !result.data) {
@@ -299,7 +308,8 @@ export class BundleOrchestrationService {
 	 */
 	private async buildFundWalletTransactionsWithEqualDistribution(
 		wallets: BundleWallet[],
-		walletAmounts: Array<{ walletIndex: number; ethAmount: bigint; expectedTokens: bigint }>
+		walletAmounts: Array<{ walletIndex: number; ethAmount: bigint; expectedTokens: bigint }>,
+		startingNonce: number
 	): Promise<BundleLaunchTransaction[]> {
 		const transactions: BundleLaunchTransaction[] = [];
 		const gasPrice = await this.provider.getGasPrice();
@@ -312,7 +322,7 @@ export class BundleOrchestrationService {
 				signer: this.fundingWallet,
 				to: wallet.address,
 				amount: ethers.BigNumber.from(walletAmount.ethAmount.toString()),
-				nonce: await getNextNonce(this.provider, this.fundingWallet.address),
+				nonce: startingNonce + i,
 				gasLimit,
 				gasPrice
 			});
@@ -335,19 +345,20 @@ export class BundleOrchestrationService {
 	 */
 	private async buildExcludeFromFeeTransactions(
 		tokenAddress: string,
-		wallets: BundleWallet[]
+		wallets: BundleWallet[],
+		startingNonce: number
 	): Promise<BundleLaunchTransaction[]> {
 		const transactions: BundleLaunchTransaction[] = [];
-		let nonce = await getNextNonce(this.provider, this.devWallet.address);
 		const gasPrice = await this.provider.getGasPrice();
 		const gasLimit = ethers.BigNumber.from('50000'); // Standard gas limit for exclude from fee
 
-		for (const wallet of wallets) {
+		for (let i = 0; i < wallets.length; i++) {
+			const wallet = wallets[i];
 			const result = await buildExcludeFromFeeTx({
 				signer: this.devWallet,
 				tokenAddress,
 				walletAddress: wallet.address,
-				nonce,
+				nonce: startingNonce + i,
 				gasLimit,
 				gasPrice
 			});
@@ -359,7 +370,6 @@ export class BundleOrchestrationService {
 					transaction: result.data.tx,
 					walletIndex: wallet.index
 				});
-				nonce++;
 			}
 		}
 
@@ -369,8 +379,7 @@ export class BundleOrchestrationService {
 	/**
 	 * Build open trading V2 transaction (simplified version without automatic liquidity)
 	 */
-	private async buildOpenTrading(tokenAddress: string): Promise<ServiceResponse<BundleLaunchTransaction>> {
-		const nonce = await getNextNonce(this.provider, this.devWallet.address);
+	private async buildOpenTrading(tokenAddress: string, nonce: number): Promise<ServiceResponse<BundleLaunchTransaction>> {
 		const gasPrice = await this.provider.getGasPrice();
 		const gasLimit = ethers.BigNumber.from('50000'); // Standard gas limit for open trading
 
@@ -418,7 +427,8 @@ export class BundleOrchestrationService {
 				amount: maxApproval,
 				nonce,
 				gasLimit,
-				gasPrice
+				gasPrice,
+				network: config.NETWORK
 			});
 
 			if (result.success && result.data) {
@@ -462,7 +472,8 @@ export class BundleOrchestrationService {
 				deadline,
 				nonce,
 				gasLimit,
-				gasPrice
+				gasPrice,
+				network: config.NETWORK
 			});
 
 			if (result.success && result.data) {

@@ -465,11 +465,12 @@ __metadata:
 
 "@eth-deployer/transactions@file:../transactions::locator=hardhat%40workspace%3Apackages%2Fhardhat":
   version: 1.0.0
-  resolution: "@eth-deployer/transactions@file:../transactions#../transactions::hash=c5a412&locator=hardhat%40workspace%3Apackages%2Fhardhat"
+  resolution: "@eth-deployer/transactions@file:../transactions#../transactions::hash=fcce4d&locator=hardhat%40workspace%3Apackages%2Fhardhat"
   dependencies:
+    "@eth-deployer/supabase": "workspace:*"
     dotenv: "npm:^17.2.0"
     ethers: "npm:5.7.2"
-  checksum: 10c0/7b6659b0219a47eb71b98ca93c6f7705c93fbc0e373ce587645e08cff06cbc563a009455c2ca7fc90992d131e355bfc83c526eeb06aabe19b3f545add835d609
+  checksum: 10c0/e37162ee3b9d97c8ff42bba12b83be6ee1b97205e36d9e7c07f162fcdcabaa4c5615b309af26a06b62eb8137bdbe3916f4014ff85090eb3edca017f28a38440e
   languageName: node
   linkType: hard
 
@@ -477,6 +478,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "@eth-deployer/transactions@workspace:packages/transactions"
   dependencies:
+    "@eth-deployer/supabase": "workspace:*"
     "@types/jest": "npm:^30.0.0"
     dotenv: "npm:^17.2.0"
     ethers: "npm:5.7.2"

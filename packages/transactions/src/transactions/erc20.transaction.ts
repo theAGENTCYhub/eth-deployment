@@ -1,6 +1,7 @@
 import { ethers, BigNumber, Signer } from 'ethers';
 import { ERC20_ABI } from '../contracts/erc20';
 import { CUSTOM_ERC20_ABI } from '../contracts/custom-erc20';
+import { getContractAddress } from '../contracts/contract-store';
 import type { ServiceResponse } from '../types';
 
 /**
@@ -73,20 +74,27 @@ export async function buildClogTransferTx({ signer, tokenAddress, to, amount, no
   }
 }
 
+
+
 /**
  * Build transaction to approve Uniswap Router for token spending
  */
-export async function buildApproveRouterTx({ signer, tokenAddress, amount, nonce, gasLimit, gasPrice }: {
+export async function buildApproveRouterTx({ signer, tokenAddress, amount, nonce, gasLimit, gasPrice, network }: {
   signer: Signer,
   tokenAddress: string,
   amount: BigNumber | string | number,
   nonce?: number,
   gasLimit?: BigNumber | string | number,
-  gasPrice?: BigNumber | string | number
+  gasPrice?: BigNumber | string | number,
+  network?: string
 }): Promise<ServiceResponse<{ tx: ethers.PopulatedTransaction }>> {
   try {
     const contract = new ethers.Contract(tokenAddress, ERC20_ABI, signer);
-    const tx = await contract.populateTransaction.approve('0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', amount); // Uniswap V2 Router
+    const routerAddress = getContractAddress('UniswapV2Router02', network);
+    if (!routerAddress) {
+      return { success: false, error: 'Router address not found for network' };
+    }
+    const tx = await contract.populateTransaction.approve(routerAddress, amount);
     if (nonce !== undefined) tx.nonce = nonce;
     if (gasLimit !== undefined) tx.gasLimit = BigNumber.from(gasLimit);
     if (gasPrice !== undefined) tx.gasPrice = BigNumber.from(gasPrice);

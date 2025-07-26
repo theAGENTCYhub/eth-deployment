@@ -553,34 +553,34 @@ export class BundleLaunchHandler {
         ? result.bundleResult.transactions.length 
         : result.bundleResult.bundle.signedTransactions.length;
 
-      const successMessage = `🚀 *Bundle Launch Successful\\!*
+      const successMessage = `🚀 Bundle Launch Successful!
 
-📋 *Launch Details:*
-• **Token:** ${bundleConfig.tokenName}
-• **Bundle Wallets:** ${bundleConfig.bundle_wallet_count}
-• **Network:** ${config.NETWORK}
+📋 Launch Details:
+• Token: ${bundleConfig.tokenName}
+• Bundle Wallets: ${bundleConfig.bundle_wallet_count}
+• Network: ${config.NETWORK}
 
-📊 *Bundle Results:*
-• **Bundle Type:** ${result.bundleResult.type}
-• **Transactions:** ${transactionCount} transactions
-• **Estimated Cost:** ${ethers.utils.formatEther(result.bundleResult.estimatedCost)} ETH
+📊 Bundle Results:
+• Bundle Type: ${result.bundleResult.type}
+• Transactions: ${transactionCount} transactions
+• Estimated Cost: ${ethers.utils.formatEther(result.bundleResult.estimatedCost)} ETH
 
-💰 *Execution Results:*
-• **Bundle Hash:** \`${result.executionResult?.bundleHash || 'N/A'}\`
-• **Transaction Hashes:** ${result.executionResult?.txHashes?.length || 0} transactions
+💰 Execution Results:
+• Bundle Hash: ${result.executionResult?.bundleHash || 'N/A'}
+• Transaction Hashes: ${result.executionResult?.txHashes?.length || 0} transactions
 
-📈 *Orchestration Results:*
-• **Bundle Wallets:** ${result.orchestrationResult?.bundleWallets?.length || 0} wallets
-• **Total Positions:** ${result.orchestrationResult?.positions?.length || 0} positions${result.databaseResult ? `
+📈 Orchestration Results:
+• Bundle Wallets: ${result.orchestrationResult?.bundleWallets?.length || 0} wallets
+• Total Positions: ${result.orchestrationResult?.positions?.length || 0} positions${result.databaseResult ? `
 
-🗄️ *Database Results:*
-• **Launch ID:** \`${result.databaseResult.launchId}\`
-• **Stored Wallets:** ${result.databaseResult.bundleWallets.length} wallets
-• **Stored Positions:** ${result.databaseResult.positions.length} positions` : ''}
+🗄️ Database Results:
+• Launch ID: ${result.databaseResult.launchId}
+• Stored Wallets: ${result.databaseResult.bundleWallets.length} wallets
+• Stored Positions: ${result.databaseResult.positions.length} positions` : ''}
 
-*Your bundle launch has been completed successfully\\!*`;
+Your bundle launch has been completed successfully!`;
 
-      await ctx.reply(successMessage, { parse_mode: 'Markdown' });
+              await ctx.reply(successMessage);
 
       // Clear the bundle config from session
       ctx.session.bundleConfig = undefined;

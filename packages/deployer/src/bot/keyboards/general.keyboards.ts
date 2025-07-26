@@ -9,11 +9,14 @@ export class GeneralKeyboards {
         Markup.button.callback('🎯 Bundle Launch', 'action_bundle_launch')
       ],
       [
-        Markup.button.callback('💼 My Wallets', 'action_wallets'),
-        Markup.button.callback('📋 Contracts', 'action_contracts')
+        Markup.button.callback('🚀 Launches', 'action_launches'),
+        Markup.button.callback('💼 My Wallets', 'action_wallets')
       ],
       [
-        Markup.button.callback('⚙️ Settings', 'action_settings'),
+        Markup.button.callback('📋 Contracts', 'action_contracts'),
+        Markup.button.callback('⚙️ Settings', 'action_settings')
+      ],
+      [
         Markup.button.callback('📊 Network Status', 'action_network')
       ]
     ]);
