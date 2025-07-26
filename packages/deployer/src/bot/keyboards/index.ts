@@ -6,6 +6,7 @@ import { WalletKeyboards } from './wallet.keyboards';
 import { ParameterEditingKeyboards } from './parameter-editing.keyboards';
 import { ContractsKeyboards } from './contracts.keyboards';
 import { LaunchesKeyboards } from './launches/launches.keyboards';
+import { LaunchManagementKeyboards } from './launch-management.keyboards';
 
 // Export keyboard classes
 export { GeneralKeyboards } from './general.keyboards';
@@ -14,6 +15,7 @@ export { WalletKeyboards } from './wallet.keyboards';
 export { ParameterEditingKeyboards } from './parameter-editing.keyboards';
 export { ContractsKeyboards } from './contracts.keyboards';
 export { LaunchesKeyboards } from './launches/launches.keyboards';
+export { LaunchManagementKeyboards } from './launch-management.keyboards';
 
 // Main BotKeyboards class that provides access to all keyboard methods
 export class BotKeyboards {
@@ -61,4 +63,12 @@ export class BotKeyboards {
   static getTradingSuccessKeyboard = LaunchesKeyboards.getTradingSuccessKeyboard;
   static getSlippageKeyboard = LaunchesKeyboards.getSlippageKeyboard;
   static getEmptyLaunchesKeyboard = LaunchesKeyboards.getEmptyLaunchesKeyboard;
+
+  // Launch management keyboards
+  static getManagementKeyboard = LaunchManagementKeyboards.getManagementKeyboard;
+  static getAddLiquidityKeyboard = LaunchManagementKeyboards.getAddLiquidityKeyboard;
+  static getRemoveLiquidityKeyboard = LaunchManagementKeyboards.getRemoveLiquidityKeyboard;
+  static getCloseTradingKeyboard = LaunchManagementKeyboards.getCloseTradingKeyboard;
+  static getUpdateLimitsKeyboard = LaunchManagementKeyboards.getUpdateLimitsKeyboard;
+  static getBackToManagementKeyboard = LaunchManagementKeyboards.getBackToManagementKeyboard;
 }

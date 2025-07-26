@@ -32,6 +32,8 @@ export interface BundleLaunchResult {
 	bundleWallets: BundleWallet[];
 	transactions: BundleLaunchTransaction[];
 	signedTransactions: string[];
+	buyTransactionHashes?: string[]; // Track which transactions are buy operations
+	walletAmounts?: Array<{ walletIndex: number; ethAmount: bigint; expectedTokens: bigint }>; // Store ETH amounts for position creation
 	pairAddress?: string;
 	totalGasEstimate: string;
 	devWalletPrivateKey: string;
@@ -91,7 +93,10 @@ export class BundleOrchestrationService {
 				routerAddress: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D', // Uniswap V2 Router
 				signer: this.devWallet,
 				maxIterations: 10,
-				tolerance: BigInt(1000)
+				tolerance: BigInt(1000),
+				// Pass actual liquidity amounts for theoretical calculation
+				initialLiquidityEth: config.liquidity_eth_amount,
+				initialLiquidityTokens: tokensForLiquidity.toString()
 			};
 
 			const equalDistributionResult = await this.calculationService.calculateEqualTokenDistribution(equalDistributionConfig);
@@ -101,6 +106,7 @@ export class BundleOrchestrationService {
 
 			const walletAmounts = equalDistributionResult.data.walletAmounts;
 			console.log(`Equal token distribution calculated: ${walletAmounts.length} wallets`);
+			result.walletAmounts = walletAmounts; // Store for position creation
 
 			// Get starting nonces for sequential management
 			let devNonce = await getNextNonce(this.provider, this.devWallet.address);
@@ -480,8 +486,7 @@ export class BundleOrchestrationService {
 				transactions.push({
 					type: 'buy_tokens',
 					description: `Buy tokens with ${ethers.utils.formatEther(walletAmount.ethAmount)} ETH for wallet ${wallet.index + 1}`,
-					transaction: result.data.tx,
-					walletIndex: wallet.index
+					transaction: result.data.tx
 				});
 			}
 		}

@@ -10,6 +10,9 @@ export interface EqualTokenDistributionConfig {
   signer: ethers.Signer;
   maxIterations?: number;
   tolerance?: bigint;
+  // Add actual liquidity amounts for theoretical calculation
+  initialLiquidityEth: string; // ETH amount that will be added to liquidity pool
+  initialLiquidityTokens: string; // Token amount that will be added to liquidity pool
 }
 
 export interface WalletBuyAmount {
@@ -45,6 +48,11 @@ export class BundleCalculationService {
         tolerance = BigInt(1000) // 1000 wei tolerance
       } = config;
 
+      // Calculate target tokens per wallet (e.g., 2% of supply per wallet)
+      const targetTokensPerWallet = totalTokensToDistribute / BigInt(walletCount);
+      
+      console.log(`Target tokens per wallet: ${ethers.utils.formatUnits(targetTokensPerWallet, 9)}`);
+
       // Initialize router contract
       const routerABI = [
         'function getAmountsOut(uint amountIn, address[] memory path) public view returns (uint[] memory amounts)',
@@ -52,12 +60,7 @@ export class BundleCalculationService {
       ];
       const router = new ethers.Contract(routerAddress, routerABI, signer);
 
-      // Calculate target tokens per wallet
-      const targetTokensPerWallet = totalTokensToDistribute / BigInt(walletCount);
-      
-      console.log(`Target tokens per wallet: ${ethers.utils.formatUnits(targetTokensPerWallet, 9)}`);
-
-      // Start with equal ETH distribution
+      // Start with equal ETH distribution as initial guess
       const initialEthPerWallet = ethers.utils.parseEther("0.05"); // Start with 0.05 ETH
       let walletAmounts: WalletBuyAmount[] = [];
       
@@ -70,7 +73,7 @@ export class BundleCalculationService {
         });
       }
 
-      // Iterative optimization
+      // Iterative optimization to find ETH amounts needed for equal token distribution
       for (let iteration = 0; iteration < maxIterations; iteration++) {
         console.log(`\n--- Iteration ${iteration + 1} ---`);
         
@@ -92,7 +95,9 @@ export class BundleCalculationService {
             wallet.ethAmount,
             wethAddress,
             tokenAddress,
-            cumulativeEth
+            cumulativeEth,
+            config.initialLiquidityEth,
+            config.initialLiquidityTokens
           );
 
           newWalletAmounts.push({
@@ -135,7 +140,9 @@ export class BundleCalculationService {
               difference,
               wethAddress,
               tokenAddress,
-              wallet.ethAmount
+              wallet.ethAmount,
+              config.initialLiquidityEth,
+              config.initialLiquidityTokens
             );
             
             const newEthAmount = wallet.ethAmount + ethAdjustment;
@@ -177,12 +184,11 @@ export class BundleCalculationService {
         success: true,
         data: result
       };
-
+      
     } catch (error) {
-      console.error('Error calculating equal token distribution:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Unknown error'
+        error: error instanceof Error ? error.message : 'Failed to calculate equal token distribution'
       };
     }
   }
@@ -195,7 +201,9 @@ export class BundleCalculationService {
     ethAmount: bigint,
     wethAddress: string,
     tokenAddress: string,
-    cumulativeEthSpent: bigint
+    cumulativeEthSpent: bigint,
+    initialLiquidityEth: string,
+    initialLiquidityTokens: string
   ): Promise<bigint> {
     try {
       // Get current reserves to calculate price impact
@@ -206,8 +214,30 @@ export class BundleCalculationService {
       return amounts[1];
       
     } catch (error) {
-      console.error('Error calculating expected tokens:', error);
-      return BigInt(0);
+      // If the liquidity pool doesn't exist yet, use theoretical calculation
+      console.log('Liquidity pool not available yet, using theoretical calculation based on known liquidity');
+      
+      // For new tokens, we can calculate based on the known liquidity that will be added
+      // This is a simplified calculation - in practice, you might want to pass the liquidity amounts
+      // as parameters to this method
+      
+      // Assume we know the initial liquidity amounts (this should be passed from the config)
+      // For now, using a placeholder calculation
+      const initialLiquidityEthBN = ethers.BigNumber.from(initialLiquidityEth);
+      const initialLiquidityTokensBN = ethers.BigNumber.from(initialLiquidityTokens);
+      
+      // Calculate based on Uniswap V2 formula: k = x * y
+      // After cumulative ETH spent, the reserves become:
+      const remainingEth = initialLiquidityEthBN.sub(cumulativeEthSpent);
+      const remainingTokens = initialLiquidityTokensBN;
+      
+      // Calculate tokens received for this ETH amount
+      const k = remainingEth.mul(remainingTokens);
+      const newEth = remainingEth.add(ethers.BigNumber.from(ethAmount));
+      const newTokens = k.div(newEth);
+      const tokensReceived = remainingTokens.sub(newTokens);
+      
+      return tokensReceived.toBigInt();
     }
   }
 
@@ -219,7 +249,9 @@ export class BundleCalculationService {
     tokenDifference: bigint,
     wethAddress: string,
     tokenAddress: string,
-    currentEthAmount: bigint
+    currentEthAmount: bigint,
+    initialLiquidityEth: string,
+    initialLiquidityTokens: string
   ): Promise<bigint> {
     try {
       if (tokenDifference === BigInt(0)) return BigInt(0);
@@ -237,8 +269,27 @@ export class BundleCalculationService {
       }
       
     } catch (error) {
-      console.error('Error calculating ETH adjustment:', error);
-      return BigInt(0);
+      // If the liquidity pool doesn't exist yet, use theoretical calculation
+      console.log('Liquidity pool not available yet, using theoretical calculation for ETH adjustment');
+      
+      const initialLiquidityEthBN = ethers.BigNumber.from(initialLiquidityEth);
+      const initialLiquidityTokensBN = ethers.BigNumber.from(initialLiquidityTokens);
+      
+      // For theoretical calculation, we can estimate ETH needed for token difference
+      // This is a simplified calculation - in practice, you might want more sophisticated logic
+      if (tokenDifference > BigInt(0)) {
+        // Need more tokens, estimate ETH needed based on current price
+        const k = initialLiquidityEthBN.mul(initialLiquidityTokensBN);
+        const currentTokenPrice = initialLiquidityEthBN.mul(ethers.BigNumber.from(10).pow(18)).div(initialLiquidityTokensBN);
+        const ethNeeded = ethers.BigNumber.from(tokenDifference).mul(currentTokenPrice).div(ethers.BigNumber.from(10).pow(18));
+        return ethNeeded.toBigInt();
+      } else {
+        // Need fewer tokens, estimate ETH reduction
+        const k = initialLiquidityEthBN.mul(initialLiquidityTokensBN);
+        const currentTokenPrice = initialLiquidityEthBN.mul(ethers.BigNumber.from(10).pow(18)).div(initialLiquidityTokensBN);
+        const ethReduction = ethers.BigNumber.from(-tokenDifference).mul(currentTokenPrice).div(ethers.BigNumber.from(10).pow(18));
+        return BigInt(-ethReduction.toBigInt());
+      }
     }
   }
 

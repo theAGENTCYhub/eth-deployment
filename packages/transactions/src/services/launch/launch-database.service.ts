@@ -227,14 +227,24 @@ export class LaunchDatabaseService {
    */
   async createPosition(params: CreatePositionParams): Promise<ServiceResponse<{ id: string }>> {
     try {
-      // TODO: Implement with Supabase integration
-      // const result = await this.supabaseService.createPosition(params);
+      const { PositionsRepository } = await import('@eth-deployer/supabase');
+      const repo = new PositionsRepository();
       
-      const positionId = `position_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+      const result = await repo.create({
+        launch_id: params.launchId,
+        wallet_address: params.walletAddress,
+        token_address: params.tokenAddress,
+        amount: params.tokenAmount,
+        eth_spent: params.ethSpent,
+        status: params.status,
+        short_id: `pos_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+      });
       
-      console.log('Creating position:', { ...params, id: positionId });
+      if (!result.success || !result.data) {
+        return { success: false, error: result.error || 'Failed to create position' };
+      }
       
-      return { success: true, data: { id: positionId } };
+      return { success: true, data: { id: result.data.id } };
     } catch (error) {
       return {
         success: false,
@@ -248,31 +258,22 @@ export class LaunchDatabaseService {
    */
   async getPositionsByLaunchId(launchId: string): Promise<ServiceResponse<Array<{ walletAddress: string; tokenAmount: string; ethSpent: string }>>> {
     try {
-      // TODO: Implement with Supabase integration
-      // const result = await this.supabaseService.getPositionsByLaunchId(launchId);
+      const { PositionsRepository } = await import('@eth-deployer/supabase');
+      const repo = new PositionsRepository();
       
-      console.log('Getting positions for launch:', launchId);
+      const result = await repo.getByLaunchId(launchId);
       
-      // Return mock data for now
-      const mockPositions = [
-        { 
-          walletAddress: '0x1234567890123456789012345678901234567890', 
-          tokenAmount: '1000000000000000000000', // 1000 tokens
-          ethSpent: '1000000000000000000' // 1 ETH
-        },
-        { 
-          walletAddress: '0x2345678901234567890123456789012345678901', 
-          tokenAmount: '1000000000000000000000', // 1000 tokens
-          ethSpent: '1000000000000000000' // 1 ETH
-        },
-        { 
-          walletAddress: '0x3456789012345678901234567890123456789012', 
-          tokenAmount: '1000000000000000000000', // 1000 tokens
-          ethSpent: '1000000000000000000' // 1 ETH
-        }
-      ];
+      if (!result.success || !result.data) {
+        return { success: false, error: result.error || 'Failed to get positions' };
+      }
       
-      return { success: true, data: mockPositions };
+      const positions = result.data.map(position => ({
+        walletAddress: position.wallet_address,
+        tokenAmount: position.amount || '0',
+        ethSpent: position.eth_spent || '0'
+      }));
+      
+      return { success: true, data: positions };
     } catch (error) {
       return {
         success: false,

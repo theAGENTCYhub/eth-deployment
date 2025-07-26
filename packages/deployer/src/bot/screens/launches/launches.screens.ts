@@ -38,7 +38,7 @@ To get started:
 
     const launchesList = launches.map((launch, index) => {
       const shortAddress = `${launch.tokenAddress.slice(0, 6)}...${launch.tokenAddress.slice(-4)}`;
-      return `${index + 1}. **${launch.tokenName}** (\`${shortAddress}\`)
+      return `${index + 1}. **${launch.tokenName}** (${shortAddress})
    • Bundle Wallets: ${launch.bundleWallets}
    • Pool Value: ${launch.poolValue}
    • P&L: ${launch.totalPnL} (${launch.pnlPercentage})`;
@@ -73,7 +73,7 @@ ${launchesList}`,
 *Token: ${launch.tokenName}*
 
 📊 **Launch Details:**
-• Contract: \`${shortAddress}\`
+• Contract: ${shortAddress}
 • Total Supply: ${launch.totalSupply} tokens
 • Bundle Wallets: ${launch.bundleWallets} wallets
 • Liquidity Pool: ${launch.liquidityPool}
@@ -96,7 +96,7 @@ ${launchesList}`,
       return {
         title: "📈 Launch Positions",
         description: `
-*Token: ${launch.tokenName} (\`${shortAddress}\`)*
+*Token: ${launch.tokenName} (${shortAddress})*
 
 💼 **Portfolio Overview:**
 • Total Positions: 0

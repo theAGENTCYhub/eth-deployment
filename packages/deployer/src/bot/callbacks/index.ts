@@ -102,5 +102,89 @@ export class CallbackManager {
   static generateContractsPageCallback(page: number): string {
     return this.generateCallbackId('contracts_page', { page });
   }
+
+  /**
+   * Generate launch detail callback
+   */
+  static generateLaunchDetailCallback(launchId: string): string {
+    return this.generateCallbackId('launch_detail', { launchId });
+  }
+
+  /**
+   * Generate launch management callback
+   */
+  static generateLaunchManagementCallback(launchId: string): string {
+    return this.generateCallbackId('launch_management', { launchId });
+  }
+
+  /**
+   * Generate launch positions callback
+   */
+  static generateLaunchPositionsCallback(launchId: string): string {
+    return this.generateCallbackId('launch_positions', { launchId });
+  }
+
+  /**
+   * Generate launches page callback
+   */
+  static generateLaunchesPageCallback(page: number): string {
+    return this.generateCallbackId('launches_page', { page });
+  }
+
+  /**
+   * Generate position detail callback
+   */
+  static generatePositionDetailCallback(launchId: string, walletId: string): string {
+    return this.generateCallbackId('position_detail', { launchId, walletId });
+  }
+
+  /**
+   * Generate positions page callback
+   */
+  static generatePositionsPageCallback(launchId: string, page: number): string {
+    return this.generateCallbackId('positions_page', { launchId, page });
+  }
+
+  /**
+   * Generate trade callback
+   */
+  static generateTradeCallback(mode: 'buy' | 'sell', launchId: string, walletId: string, amount: string): string {
+    return this.generateCallbackId('trade', { mode, launchId, walletId, amount });
+  }
+
+  /**
+   * Generate position mode callback
+   */
+  static generatePositionModeCallback(mode: 'buy' | 'sell', launchId: string, walletId: string): string {
+    return this.generateCallbackId('position_mode', { mode, launchId, walletId });
+  }
+
+  /**
+   * Generate trade slippage callback
+   */
+  static generateTradeSlippageCallback(launchId: string, walletId: string): string {
+    return this.generateCallbackId('trade_slippage', { launchId, walletId });
+  }
+
+  /**
+   * Generate position refresh callback
+   */
+  static generatePositionRefreshCallback(launchId: string, walletId: string): string {
+    return this.generateCallbackId('position_refresh', { launchId, walletId });
+  }
+
+  /**
+   * Generate trade confirm callback
+   */
+  static generateTradeConfirmCallback(launchId: string, walletId: string, mode: 'buy' | 'sell', amount: string): string {
+    return this.generateCallbackId('trade_confirm', { launchId, walletId, mode, amount });
+  }
+
+  /**
+   * Generate trade cancel callback
+   */
+  static generateTradeCancelCallback(launchId: string, walletId: string): string {
+    return this.generateCallbackId('trade_cancel', { launchId, walletId });
+  }
 } 
 

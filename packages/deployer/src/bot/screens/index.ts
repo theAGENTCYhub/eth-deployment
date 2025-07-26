@@ -4,6 +4,7 @@ import { WalletScreens } from './wallet.screens';
 import { ParameterEditingScreens } from './parameter-editing.screens';
 import { GeneralScreens } from './general.screens';
 import { LaunchesScreens } from './launches/launches.screens';
+import { LaunchManagementScreens } from './launch-management.screens';
 
 // Export screen classes
 export { DeploymentScreens } from './deployment.screens';
@@ -11,6 +12,7 @@ export { WalletScreens } from './wallet.screens';
 export { ParameterEditingScreens } from './parameter-editing.screens';
 export { GeneralScreens } from './general.screens';
 export { LaunchesScreens } from './launches/launches.screens';
+export { LaunchManagementScreens } from './launch-management.screens';
 
 // Types
 export type { ScreenContent } from './types';
@@ -53,6 +55,13 @@ export class BotScreens {
     static getLaunchManagementScreen = LaunchesScreens.getLaunchManagementScreen;
     static getPositionsListScreen = LaunchesScreens.getPositionsListScreen;
     static getPositionDetailScreen = LaunchesScreens.getPositionDetailScreen;
+
+    // Launch management screens
+    static getManagementScreen = LaunchManagementScreens.getManagementScreen;
+    static getAddLiquidityScreen = LaunchManagementScreens.getAddLiquidityScreen;
+    static getRemoveLiquidityScreen = LaunchManagementScreens.getRemoveLiquidityScreen;
+    static getCloseTradingScreen = LaunchManagementScreens.getCloseTradingScreen;
+    static getUpdateLimitsScreen = LaunchManagementScreens.getUpdateLimitsScreen;
 
     /**
      * Format a screen content object into a Telegram message string

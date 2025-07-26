@@ -119,54 +119,64 @@ export class TradingServiceManager {
    */
   async getLaunchesData(): Promise<LaunchData[]> {
     try {
-      // For now, return mock data but with real price calculations
-      // In the future, this would fetch from database
-      const mockLaunches: LaunchData[] = [
-        {
-          id: '1',
-          tokenName: 'TestToken1',
-          tokenAddress: '0x1234567890123456789012345678901234567890',
-          totalSupply: '1,000,000',
-          bundleWallets: 5,
-          liquidityPool: '2.5 ETH / 950k tokens',
-          poolValue: '2.5',
-          positions: 3,
-          totalPnL: '+0.15',
-          pnlPercentage: '+6%'
-        },
-        {
-          id: '2',
-          tokenName: 'TestToken2',
-          tokenAddress: '0x2345678901234567890123456789012345678901',
-          totalSupply: '500,000',
-          bundleWallets: 3,
-          liquidityPool: '1.2 ETH / 450k tokens',
-          poolValue: '1.2',
-          positions: 2,
-          totalPnL: '-0.05',
-          pnlPercentage: '-4%'
-        }
-      ];
-
-      // Calculate real prices and P&L for each launch
-      for (const launch of mockLaunches) {
-        const priceResult = await this.priceService.getTokenPrice(launch.tokenAddress);
-        if (priceResult.success && priceResult.data) {
-          // Update pool value based on real price
-          const tokenPrice = parseFloat(priceResult.data.price);
-          const totalSupply = parseFloat(launch.totalSupply.replace(/,/g, ''));
-          const poolValue = (tokenPrice * totalSupply).toFixed(2);
-          launch.poolValue = poolValue;
-          
-          // Calculate P&L based on real price
-          const entryPrice = 0.000001; // Mock entry price
-          const priceChange = ((tokenPrice - entryPrice) / entryPrice) * 100;
-          launch.pnlPercentage = `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(1)}%`;
-          launch.totalPnL = `${priceChange >= 0 ? '+' : ''}${(priceChange / 100 * parseFloat(launch.poolValue)).toFixed(2)}`;
-        }
+      // Get real launch data from database
+      const { BundleLaunchesService } = await import('@eth-deployer/supabase');
+      const service = new BundleLaunchesService();
+      const result = await service.getBundleLaunchesByUserId(this.userId);
+      
+      if (!result.success || !result.data) {
+        console.error('Failed to get launches data:', result.error);
+        return [];
       }
+      
+      // Transform database data to UI format
+      const launches: LaunchData[] = await Promise.all(
+        result.data.map(async (launch) => {
+          // Get positions count for this launch
+          const positionsResult = await service.getPositionsByLaunchId(launch.id);
+          const positionsCount = positionsResult.success && positionsResult.data ? positionsResult.data.length : 0;
+          
+          // Get bundle wallets count
+          const walletsResult = await service.getBundleWalletsByLaunchId(launch.id);
+          const bundleWalletsCount = walletsResult.success && walletsResult.data ? walletsResult.data.length : 0;
+          
+          // Calculate real prices and P&L
+          const priceResult = await this.priceService.getTokenPrice(launch.token_address);
+          let poolValue = '0';
+          let totalPnL = '0';
+          let pnlPercentage = '0%';
+          
+          if (priceResult.success && priceResult.data) {
+            const tokenPrice = parseFloat(priceResult.data.price);
+            
+            // Use a more reasonable pool value calculation
+            // Instead of multiplying by total supply, use the liquidity ETH amount from the launch
+            const liquidityEth = parseFloat(launch.liquidity_eth_amount || '0');
+            poolValue = liquidityEth.toFixed(2);
+            
+            // Calculate P&L based on real price (assuming entry price from launch)
+            const entryPrice = 0.000001; // This should come from launch data
+            const priceChange = ((tokenPrice - entryPrice) / entryPrice) * 100;
+            pnlPercentage = `${priceChange >= 0 ? '+' : ''}${priceChange.toFixed(1)}%`;
+            totalPnL = `${priceChange >= 0 ? '+' : ''}${(priceChange / 100 * liquidityEth).toFixed(2)}`;
+          }
+          
+          return {
+            id: launch.id,
+            tokenName: launch.token_name,
+            tokenAddress: launch.token_address,
+            totalSupply: launch.token_total_supply || '0',
+            bundleWallets: bundleWalletsCount,
+            liquidityPool: `${poolValue} ETH / ${launch.token_total_supply || '0'} tokens`,
+            poolValue,
+            positions: positionsCount,
+            totalPnL,
+            pnlPercentage
+          };
+        })
+      );
 
-      return mockLaunches;
+      return launches;
     } catch (error) {
       console.error('Error getting launches data:', error);
       return [];
@@ -185,58 +195,48 @@ export class TradingServiceManager {
         throw new Error('Launch not found');
       }
 
-      // Mock positions data - in real implementation, this would come from database
-      const mockPositions: PositionData[] = [
-        {
-          walletId: '1',
-          walletAddress: '0x1111111111111111111111111111111111111111',
-          tokenBalance: '10,000',
-          entryValue: '0.1',
-          currentValue: '0.12',
-          pnl: 0.02,
-          pnlPercentage: '+20%'
-        },
-        {
-          walletId: '2',
-          walletAddress: '0x2222222222222222222222222222222222222222',
-          tokenBalance: '15,000',
-          entryValue: '0.15',
-          currentValue: '0.18',
-          pnl: 0.03,
-          pnlPercentage: '+20%'
-        },
-        {
-          walletId: '3',
-          walletAddress: '0x3333333333333333333333333333333333333333',
-          tokenBalance: '20,000',
-          entryValue: '0.25',
-          currentValue: '0.35',
-          pnl: 0.1,
-          pnlPercentage: '+40%'
-        }
-      ];
-
-      // Calculate real P&L for each position
-      const priceResult = await this.priceService.getTokenPrice(launch.tokenAddress);
-      if (priceResult.success && priceResult.data) {
-        const currentPrice = parseFloat(priceResult.data.price);
-        
-        for (const position of mockPositions) {
-          const tokenBalance = parseFloat(position.tokenBalance.replace(/,/g, ''));
-          const entryValue = parseFloat(position.entryValue);
-          const entryPrice = entryValue / tokenBalance;
-          
-          const currentValue = tokenBalance * currentPrice;
-          const pnl = currentValue - entryValue;
-          const pnlPercentage = (pnl / entryValue) * 100;
-          
-          position.currentValue = currentValue.toFixed(3);
-          position.pnl = pnl;
-          position.pnlPercentage = `${pnl >= 0 ? '+' : ''}${pnlPercentage.toFixed(1)}%`;
-        }
+      // Get real positions data from database
+      const { PositionsRepository } = await import('@eth-deployer/supabase');
+      const repo = new PositionsRepository();
+      const result = await repo.getByLaunchId(launchId);
+      
+      if (!result.success || !result.data) {
+        console.error('Failed to get positions data:', result.error);
+        return { launch, positions: [] };
       }
+      
+      // Transform database positions to UI format
+      const positions: PositionData[] = await Promise.all(
+        result.data.map(async (position) => {
+          // Calculate real P&L for each position
+          const priceResult = await this.priceService.getTokenPrice(launch.tokenAddress);
+          let currentValue = '0';
+          let pnl = 0;
+          let pnlPercentage = '0%';
+          
+          if (priceResult.success && priceResult.data) {
+            const currentPrice = parseFloat(priceResult.data.price);
+            const tokenBalance = parseFloat(position.amount || '0');
+            const entryValue = parseFloat(position.eth_spent || '0');
+            
+            currentValue = (tokenBalance * currentPrice).toFixed(3);
+            pnl = tokenBalance * currentPrice - entryValue;
+            pnlPercentage = `${pnl >= 0 ? '+' : ''}${((pnl / entryValue) * 100).toFixed(1)}%`;
+          }
+          
+          return {
+            walletId: position.id,
+            walletAddress: position.wallet_address,
+            tokenBalance: position.amount || '0',
+            entryValue: position.eth_spent || '0',
+            currentValue,
+            pnl,
+            pnlPercentage
+          };
+        })
+      );
 
-      return { launch, positions: mockPositions };
+      return { launch, positions };
     } catch (error) {
       console.error('Error getting positions data:', error);
       throw error;
@@ -414,12 +414,23 @@ export class TradingServiceManager {
   }
 
   /**
-   * Get wallet private key (mock implementation)
-   * In real implementation, this would decrypt from database
+   * Get wallet private key from database
    */
   async getWalletPrivateKey(walletId: string): Promise<string> {
-    // Mock implementation - in real app, this would decrypt from database
-    return '0x1234567890123456789012345678901234567890123456789012345678901234';
+    try {
+      const { WalletService } = await import('@eth-deployer/supabase');
+      const walletService = new WalletService();
+      const result = await walletService.exportPrivateKey(walletId);
+      
+      if (!result.success || !result.privateKey) {
+        throw new Error(`Failed to get private key: ${result.error}`);
+      }
+      
+      return result.privateKey;
+    } catch (error) {
+      console.error('Error getting wallet private key:', error);
+      throw error;
+    }
   }
 
   /**
@@ -447,5 +458,9 @@ export class TradingServiceManager {
     return this.network === 'mainnet'
       ? '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2'
       : '0xB4FBF271143F4FBf7B91A5ded31805e42b2208d6'; // Goerli WETH
+  }
+
+  getProvider(): ethers.providers.Provider {
+    return this.provider;
   }
 } 

@@ -38,7 +38,7 @@ export interface SessionData {
   };
   // currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts' | 'template_selection' | 'parameter_editing' | 'deployment_confirmation' | 'deployment_progress' | 'deployment_result';
   currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts' | 'template_selection' | 'parameter_editing' | 'deployment_confirmation' | 'deployment_progress' | 'deployment_result'
-  | 'wallet_main' | 'wallet_list' | 'wallet_detail' | 'contracts_main' | 'launches_list' | 'launch_detail' | 'positions_list' | 'position_detail';
+  | 'wallet_main' | 'wallet_list' | 'wallet_detail' | 'contracts_main' | 'launches_list' | 'launch_detail' | 'launch_management' | 'positions_list' | 'position_detail';
   currentScreenData?: any;
   navigationHistory?: NavigationHistoryItem[];
   walletPage?: number;

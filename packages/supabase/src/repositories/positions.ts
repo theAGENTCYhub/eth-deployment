@@ -144,6 +144,100 @@ export class PositionsRepository {
       return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
     }
   }
+
+  /**
+   * Update position after a buy trade
+   */
+  async updateAfterBuy(id: string, data: {
+    additional_amount?: string;
+    additional_eth_spent?: string;
+    transaction_hash?: string;
+  }) {
+    try {
+      // Get current position
+      const currentResult = await this.getById(id);
+      if (!currentResult.success || !currentResult.data) {
+        return { success: false, error: 'Position not found' };
+      }
+
+      const current = currentResult.data;
+      
+      // Calculate new values
+      const currentAmount = parseFloat(current.amount || '0');
+      const additionalAmount = parseFloat(data.additional_amount || '0');
+      const newAmount = currentAmount + additionalAmount;
+      
+      const currentEthSpent = parseFloat(current.eth_spent || '0');
+      const additionalEthSpent = parseFloat(data.additional_eth_spent || '0');
+      const newEthSpent = currentEthSpent + additionalEthSpent;
+
+      // Update position
+      const updateData: UpdatePosition = {
+        amount: newAmount.toString(),
+        eth_spent: newEthSpent.toString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data: position, error } = await supabase
+        .from('positions')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) return { success: false, error: error.message };
+      return { success: true, data: position };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  /**
+   * Update position after a sell trade
+   */
+  async updateAfterSell(id: string, data: {
+    amount_sold?: string;
+    eth_received?: string;
+    transaction_hash?: string;
+  }) {
+    try {
+      // Get current position
+      const currentResult = await this.getById(id);
+      if (!currentResult.success || !currentResult.data) {
+        return { success: false, error: 'Position not found' };
+      }
+
+      const current = currentResult.data;
+      
+      // Calculate new values
+      const currentAmount = parseFloat(current.amount || '0');
+      const amountSold = parseFloat(data.amount_sold || '0');
+      const newAmount = Math.max(0, currentAmount - amountSold); // Don't go below 0
+      
+      const currentEthSpent = parseFloat(current.eth_spent || '0');
+      const ethReceived = parseFloat(data.eth_received || '0');
+      const newEthSpent = Math.max(0, currentEthSpent - ethReceived); // Don't go below 0
+
+      // Update position
+      const updateData: UpdatePosition = {
+        amount: newAmount.toString(),
+        eth_spent: newEthSpent.toString(),
+        updated_at: new Date().toISOString()
+      };
+
+      const { data: position, error } = await supabase
+        .from('positions')
+        .update(updateData)
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) return { success: false, error: error.message };
+      return { success: true, data: position };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
 }
 
 export type { Position, CreatePosition, UpdatePosition }; 

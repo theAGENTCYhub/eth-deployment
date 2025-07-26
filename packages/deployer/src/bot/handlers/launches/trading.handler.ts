@@ -4,6 +4,7 @@ import { LaunchesKeyboards } from '../../keyboards/launches/launches.keyboards';
 import { BotScreens } from '../../screens';
 import { TradingServiceManager, ServiceManagerConfig } from '../../../services/trading-service-manager';
 import { ethers } from 'ethers';
+import { EventParser } from '@eth-deployer/transactions/src/utils/event-parser';
 
 export class TradingHandler {
   /**
@@ -52,25 +53,103 @@ export class TradingHandler {
         let tradeData: any;
         
         if (mode === 'buy') {
+          // Update position in database after successful buy
+          const { PositionsRepository } = await import('@eth-deployer/supabase');
+          const repo = new PositionsRepository();
+          
+          // Get current position data first
+          const currentPosition = await repo.getById(walletId);
+          if (!currentPosition.success || !currentPosition.data) {
+            throw new Error('Position not found');
+          }
+          
+          await (repo as any).updateAfterBuy(walletId, {
+            additional_amount: result.amountOut,
+            additional_eth_spent: amount,
+            transaction_hash: result.transactionHash
+          });
+          
+          // Get updated position for display
+          const updatedPosition = await repo.getById(walletId);
+          const newBalance = updatedPosition.success && updatedPosition.data ? updatedPosition.data.amount : '0';
+          
           tradeData = {
             mode: 'buy',
             amount,
             tokensReceived: result.amountOut,
             transactionHash: result.transactionHash,
-            newBalance: 'Calculating...', // Would need to fetch updated balance
+            newBalance,
             newValue: 'Calculating...', // Would need to recalculate
             updatedPnL: 'Calculating...' // Would need to recalculate
           };
         } else {
+          // Update position in database after successful sell
+          const { PositionsRepository } = await import('@eth-deployer/supabase');
+          const repo = new PositionsRepository();
+          
+          // Get current position data first
+          const currentPosition = await repo.getById(walletId);
+          if (!currentPosition.success || !currentPosition.data) {
+            throw new Error('Position not found');
+          }
+          
+          const selectedAmount = (parseFloat(currentPosition.data.amount || '0') * parseFloat(amount) / 100).toFixed(0);
+          
+          await (repo as any).updateAfterSell(walletId, {
+            amount_sold: selectedAmount,
+            eth_received: result.amountOut,
+            transaction_hash: result.transactionHash
+          });
+          
+          // Get updated position for display
+          const updatedPosition = await repo.getById(walletId);
+          const newBalance = updatedPosition.success && updatedPosition.data ? updatedPosition.data.amount : '0';
+          
           tradeData = {
             mode: 'sell',
             amount: `${amount}%`,
             tokensReceived: result.amountOut, // ETH received
             transactionHash: result.transactionHash,
-            newBalance: 'Calculating...', // Would need to fetch updated balance
+            newBalance,
             newValue: 'Calculating...', // Would need to recalculate
             updatedPnL: 'Calculating...' // Would need to recalculate
           };
+        }
+
+        // After successful trade execution
+        if (result.success && result.transactionHash) {
+          try {
+            const eventParser = new EventParser(serviceManager.getProvider());
+            let actualAmount: string;
+            if (mode === 'buy') {
+              const swapResult = await eventParser.parseBuyTransaction(
+                result.transactionHash,
+                launch.tokenAddress, // Assuming launch.tokenAddress is the walletAddress for buy
+                launch.tokenAddress
+              );
+              actualAmount = swapResult.tokensReceived;
+            } else {
+              const swapResult = await eventParser.parseSellTransaction(
+                result.transactionHash,
+                launch.tokenAddress, // Assuming launch.tokenAddress is the walletAddress for sell
+                launch.tokenAddress
+              );
+              actualAmount = swapResult.tokensReceived; // Amount sold
+            }
+            // Update trade data with real amounts
+            tradeData = {
+              mode: mode,
+              amount,
+              tokensReceived: actualAmount, // Real amount from events
+              transactionHash: result.transactionHash,
+              newBalance: 'Calculating...', // Update position after
+              newValue: 'Calculating...',
+              updatedPnL: 'Calculating...'
+            };
+          } catch (error) {
+            console.error('Failed to parse trade transaction events:', error);
+            // Use original result as fallback
+          }
         }
 
         const screen = LaunchesScreens.getTradingSuccessScreen(tradeData);

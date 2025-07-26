@@ -465,12 +465,12 @@ __metadata:
 
 "@eth-deployer/transactions@file:../transactions::locator=hardhat%40workspace%3Apackages%2Fhardhat":
   version: 1.0.0
-  resolution: "@eth-deployer/transactions@file:../transactions#../transactions::hash=fcce4d&locator=hardhat%40workspace%3Apackages%2Fhardhat"
+  resolution: "@eth-deployer/transactions@file:../transactions#../transactions::hash=1c5d08&locator=hardhat%40workspace%3Apackages%2Fhardhat"
   dependencies:
     "@eth-deployer/supabase": "workspace:*"
     dotenv: "npm:^17.2.0"
     ethers: "npm:5.7.2"
-  checksum: 10c0/e37162ee3b9d97c8ff42bba12b83be6ee1b97205e36d9e7c07f162fcdcabaa4c5615b309af26a06b62eb8137bdbe3916f4014ff85090eb3edca017f28a38440e
+  checksum: 10c0/3415a14972700a3dd911da83979549c5a11687ea204e976ffb99373d1136244dc80e6050d0e8d8027ea84b1c031a5054573abf17c87839a383d023a13e57c2b5
   languageName: node
   linkType: hard
 

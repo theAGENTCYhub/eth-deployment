@@ -199,21 +199,38 @@ export class BundleCreationService {
    */
   async executeSequentialBundle(
     bundle: SequentialBundleResult,
-    orchestrationResult: any // BundleLaunchResult
+    orchestrationResult: BundleLaunchResult
   ): Promise<ServiceResponse<{ txHashes: string[] }>> {
     try {
-      // TODO: Implement actual sequential bundle execution
-      return {
-        success: true,
-        data: {
-          txHashes: []
+      const txHashes: string[] = [];
+      const buyTransactionHashes: string[] = [];
+      
+      for (let i = 0; i < bundle.transactions.length; i++) {
+        const signedTx = bundle.transactions[i];
+        const txDescription = orchestrationResult.transactions[i]?.description || '';
+        
+        // Execute transaction
+        const txResponse = await this.provider.sendTransaction(signedTx);
+        const receipt = await txResponse.wait(1);
+        
+        if (receipt.status === 1) {
+          txHashes.push(txResponse.hash);
+          
+          // Track buy transactions specifically
+          if (txDescription.toLowerCase().includes('buy') || 
+              txDescription.toLowerCase().includes('swap') ||
+              orchestrationResult.transactions[i]?.type === 'buy_tokens') {
+            buyTransactionHashes.push(txResponse.hash);
+          }
         }
-      };
+      }
+      
+      // Store buy transaction hashes for position creation
+      orchestrationResult.buyTransactionHashes = buyTransactionHashes;
+      
+      return { success: true, data: { txHashes } };
     } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Failed to execute sequential bundle'
-      };
+      return { success: false, error: error instanceof Error ? error.message : 'Bundle execution failed' };
     }
   }
 

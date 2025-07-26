@@ -1,5 +1,6 @@
 import { Markup } from 'telegraf';
 import { LaunchData } from '../../screens/launches/launches.screens';
+import { CallbackManager } from '../../callbacks';
 
 export class LaunchesKeyboards {
   /**
@@ -16,17 +17,20 @@ export class LaunchesKeyboards {
     pageLaunches.forEach((launch, index) => {
       const shortAddress = `${launch.tokenAddress.slice(0, 6)}...${launch.tokenAddress.slice(-4)}`;
       const buttonText = `${launch.tokenName} (${shortAddress})`;
-      buttons.push([Markup.button.callback(buttonText, `launch_detail_${launch.id}`)]);
+      const callbackId = CallbackManager.generateLaunchDetailCallback(launch.id);
+      buttons.push([Markup.button.callback(buttonText, callbackId)]);
     });
 
     // Add pagination if needed
     if (totalPages > 1) {
       const paginationRow = [];
       if (currentPage > 1) {
-        paginationRow.push(Markup.button.callback('◀️ Previous', `launches_page_${currentPage - 1}`));
+        const prevCallbackId = CallbackManager.generateLaunchesPageCallback(currentPage - 1);
+        paginationRow.push(Markup.button.callback('◀️ Previous', prevCallbackId));
       }
       if (currentPage < totalPages) {
-        paginationRow.push(Markup.button.callback('▶️ Next', `launches_page_${currentPage + 1}`));
+        const nextCallbackId = CallbackManager.generateLaunchesPageCallback(currentPage + 1);
+        paginationRow.push(Markup.button.callback('▶️ Next', nextCallbackId));
       }
       if (paginationRow.length > 0) {
         buttons.push(paginationRow);
@@ -43,10 +47,13 @@ export class LaunchesKeyboards {
    * Get launch management keyboard
    */
   static getLaunchManagementKeyboard(launchId: string) {
+    const managementCallbackId = CallbackManager.generateLaunchManagementCallback(launchId);
+    const positionsCallbackId = CallbackManager.generateLaunchPositionsCallback(launchId);
+    
     return Markup.inlineKeyboard([
       [
-        Markup.button.callback('⚙️ Management', `launch_management_${launchId}`),
-        Markup.button.callback('📈 Positions', `launch_positions_${launchId}`)
+        Markup.button.callback('⚙️ Management', managementCallbackId),
+        Markup.button.callback('📈 Positions', positionsCallbackId)
       ],
       [Markup.button.callback('🔙 Back to Launches', 'action_launches')]
     ]);
