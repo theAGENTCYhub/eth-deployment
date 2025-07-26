@@ -16,6 +16,7 @@ ${networkStatus}${testnetWarning}
 
 *What you can do:*
 • Deploy custom ERC20 tokens
+• Launch bundle distributions
 • Manage contract templates
 • Configure multi-wallet distributions
 • Create liquidity pools

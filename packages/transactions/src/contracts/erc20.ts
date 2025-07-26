@@ -1,5 +1,49 @@
 import { ethers } from 'ethers';
 
+export const ERC20_ABI = [
+  // balanceOf
+  {
+    constant: true,
+    inputs: [{ name: 'owner', type: 'address' }],
+    name: 'balanceOf',
+    outputs: [{ name: 'balance', type: 'uint256' }],
+    type: 'function',
+  },
+  // allowance
+  {
+    constant: true,
+    inputs: [
+      { name: 'owner', type: 'address' },
+      { name: 'spender', type: 'address' }
+    ],
+    name: 'allowance',
+    outputs: [{ name: 'remaining', type: 'uint256' }],
+    type: 'function',
+  },
+  // transfer
+  {
+    constant: false,
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'value', type: 'uint256' }
+    ],
+    name: 'transfer',
+    outputs: [{ name: 'success', type: 'bool' }],
+    type: 'function',
+  },
+  // approve
+  {
+    constant: false,
+    inputs: [
+      { name: 'spender', type: 'address' },
+      { name: 'value', type: 'uint256' }
+    ],
+    name: 'approve',
+    outputs: [{ name: 'success', type: 'bool' }],
+    type: 'function',
+  },
+];
+
 export class ERC20 {
     static ABI = [
         { "constant": true, "inputs": [], "name": "name", "outputs": [{ "name": "", "type": "string" }], "type": "function" },

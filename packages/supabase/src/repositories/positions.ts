@@ -61,6 +61,62 @@ export class PositionsRepository {
     }
   }
 
+  async getByLaunchId(launchId: string) {
+    try {
+      const { data: positions, error } = await supabase
+        .from('positions')
+        .select('*')
+        .eq('launch_id', launchId)
+        .order('created_at', { ascending: true });
+      if (error) return { success: false, error: error.message };
+      return { success: true, data: positions };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async getByWalletAddress(walletAddress: string) {
+    try {
+      const { data: positions, error } = await supabase
+        .from('positions')
+        .select('*')
+        .eq('wallet_address', walletAddress)
+        .order('created_at', { ascending: false });
+      if (error) return { success: false, error: error.message };
+      return { success: true, data: positions };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async getByTokenAddress(tokenAddress: string) {
+    try {
+      const { data: positions, error } = await supabase
+        .from('positions')
+        .select('*')
+        .eq('token_address', tokenAddress)
+        .order('created_at', { ascending: false });
+      if (error) return { success: false, error: error.message };
+      return { success: true, data: positions };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async getByStatus(status: string) {
+    try {
+      const { data: positions, error } = await supabase
+        .from('positions')
+        .select('*')
+        .eq('status', status)
+        .order('created_at', { ascending: false });
+      if (error) return { success: false, error: error.message };
+      return { success: true, data: positions };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
   async update(id: string, data: UpdatePosition) {
     try {
       const { data: position, error } = await supabase

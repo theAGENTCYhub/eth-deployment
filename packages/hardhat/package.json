@@ -1,6 +1,17 @@
 {
   "name": "hardhat",
   "packageManager": "yarn@4.9.2",
+  "scripts": {
+    "test": "hardhat test",
+    "test:bundle": "hardhat test test-bundle-launch.js",
+    "compile": "hardhat compile",
+    "node": "hardhat node",
+    "deploy:bundle": "hardhat run scripts/deploy-and-bundle.js",
+    "deploy:bundle:simple": "hardhat run scripts/deploy-and-bundle-simple.js",
+    "deploy:bundle:equal": "hardhat run scripts/deploy-and-bundle-equal-distribution.js",
+    "deploy:bundle:equal:standalone": "hardhat run scripts/deploy-and-bundle-equal-standalone.js",
+    "deploy:bundle:with-transactions": "hardhat run scripts/deploy-and-bundle-with-transactions-package.js"
+  },
   "devDependencies": {
     "@nomicfoundation/hardhat-chai-matchers": "^2.1.0",
     "@nomicfoundation/hardhat-ethers": "^3.1.0",
@@ -14,9 +25,14 @@
     "@typechain/hardhat": "^9.0.0",
     "@types/mocha": "^9.1.0",
     "chai": "^4.2.0",
+    "ethers": "^6",
     "hardhat": "^2.26.0",
     "hardhat-gas-reporter": "^2.3.0",
     "solidity-coverage": "^0.8.1",
     "typechain": "^8.3.0"
+  },
+  "dependencies": {
+    "@eth-deployer/transactions": "../transactions",
+    "@openzeppelin/contracts": "^5.4.0"
   }
 }

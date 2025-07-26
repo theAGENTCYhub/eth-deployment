@@ -9,6 +9,8 @@ export { CompiledArtifactsService } from './services/compiled-artifacts.service'
 export { WalletService } from './services/wallet.service';
 export { TransactionsService } from './services/transactions.service';
 export { DeployedContractsService } from './services/deployed-contracts.service';
+export { LaunchConfigsService } from './services/launch-configs.service';
+export { BundleLaunchesService } from './services/bundle-launches.service';
 
 // Repository exports
 export { DeploymentsRepository } from './repositories/deployments';
@@ -16,6 +18,8 @@ export { ContractTemplatesRepository } from './repositories/contract-templates';
 export { ParameterDefinitionsRepository } from './repositories/parameter-definitions';
 export { ContractInstancesRepository } from './repositories/contract-instances';
 export { TransactionsRepository } from './repositories/transactions';
+export { BundleWalletsRepository } from './repositories/bundle-wallets';
+export { PositionsRepository } from './repositories/positions';
 
 // Realtime exports
 export { DeploymentsRealtime } from './realtime/deployments';

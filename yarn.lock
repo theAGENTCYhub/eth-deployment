@@ -463,7 +463,17 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"@eth-deployer/transactions@workspace:packages/transactions":
+"@eth-deployer/transactions@file:../transactions::locator=hardhat%40workspace%3Apackages%2Fhardhat":
+  version: 1.0.0
+  resolution: "@eth-deployer/transactions@file:../transactions#../transactions::hash=c5a412&locator=hardhat%40workspace%3Apackages%2Fhardhat"
+  dependencies:
+    dotenv: "npm:^17.2.0"
+    ethers: "npm:5.7.2"
+  checksum: 10c0/7b6659b0219a47eb71b98ca93c6f7705c93fbc0e373ce587645e08cff06cbc563a009455c2ca7fc90992d131e355bfc83c526eeb06aabe19b3f545add835d609
+  languageName: node
+  linkType: hard
+
+"@eth-deployer/transactions@workspace:*, @eth-deployer/transactions@workspace:packages/transactions":
   version: 0.0.0-use.local
   resolution: "@eth-deployer/transactions@workspace:packages/transactions"
   dependencies:
@@ -2042,6 +2052,13 @@ __metadata:
   dependencies:
     semver: "npm:^7.3.5"
   checksum: 10c0/c90935d5ce670c87b6b14fab04a965a3b8137e585f8b2a6257263bd7f97756dd736cb165bb470e5156a9e718ecd99413dccc54b1138c1a46d6ec7cf325982fe5
+  languageName: node
+  linkType: hard
+
+"@openzeppelin/contracts@npm:^5.4.0":
+  version: 5.4.0
+  resolution: "@openzeppelin/contracts@npm:5.4.0"
+  checksum: 10c0/7e05646dee4905fea4493f0fb2ad208abaff84b9f5ef1b9e1a5fc61d0e74d9bc30759bdf0d09a08049cfef6a290623330d83469eadc990a7bba6c2cd09a27e1d
   languageName: node
   linkType: hard
 
@@ -4181,6 +4198,7 @@ __metadata:
   resolution: "deployer@workspace:packages/deployer"
   dependencies:
     "@eth-deployer/supabase": "workspace:*"
+    "@eth-deployer/transactions": "workspace:*"
     "@types/node": "npm:^24.0.13"
     dotenv: "npm:^17.2.0"
     ethers: "npm:5.7.2"
@@ -4637,7 +4655,7 @@ __metadata:
   languageName: node
   linkType: hard
 
-"ethers@npm:^6.14.0":
+"ethers@npm:^6, ethers@npm:^6.14.0":
   version: 6.15.0
   resolution: "ethers@npm:6.15.0"
   dependencies:
@@ -5389,6 +5407,7 @@ __metadata:
   version: 0.0.0-use.local
   resolution: "hardhat@workspace:packages/hardhat"
   dependencies:
+    "@eth-deployer/transactions": ../transactions
     "@nomicfoundation/hardhat-chai-matchers": "npm:^2.1.0"
     "@nomicfoundation/hardhat-ethers": "npm:^3.1.0"
     "@nomicfoundation/hardhat-ignition": "npm:^0.15.13"
@@ -5397,10 +5416,12 @@ __metadata:
     "@nomicfoundation/hardhat-toolbox": "npm:^6.1.0"
     "@nomicfoundation/hardhat-verify": "npm:^2.1.0"
     "@nomicfoundation/ignition-core": "npm:^0.15.13"
+    "@openzeppelin/contracts": "npm:^5.4.0"
     "@typechain/ethers-v6": "npm:^0.5.0"
     "@typechain/hardhat": "npm:^9.0.0"
     "@types/mocha": "npm:^9.1.0"
     chai: "npm:^4.2.0"
+    ethers: "npm:^6"
     hardhat: "npm:^2.26.0"
     hardhat-gas-reporter: "npm:^2.3.0"
     solidity-coverage: "npm:^0.8.1"

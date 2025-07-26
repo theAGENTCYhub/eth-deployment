@@ -7,6 +7,8 @@ import { CallbackManager } from '../callbacks';
 import { web3Provider } from '../../web3/provider';
 import { WalletHandlers } from './wallet.handler';
 import { ContractsHandler } from './contracts.handler';
+import { ConfigurationsHandler } from './settings/configurations.handler';
+import { BundleLaunchHandler } from './bundle/bundle-launch.handler';
 
 export class SetupHandler {
   /**
@@ -132,7 +134,7 @@ Current network: ${process.env.NETWORK || 'Local'}
     // Coming soon handlers
     bot.action('action_wallets', WalletHandlers.showWalletMain);
     bot.action('action_contracts', ContractsHandler.showContractsMain);
-    bot.action('action_settings', (ctx) => BotHandlers.showComingSoon(ctx, 'Settings'));
+    bot.action('action_settings', ConfigurationsHandler.listConfigs);
 
     // Contracts handlers
     bot.action('contracts_view_deployed', async (ctx) => {
@@ -168,6 +170,42 @@ Current network: ${process.env.NETWORK || 'Local'}
     bot.action(/^select_wallet_(.+)$/, async (ctx) => {
       const walletId = ctx.match[1];
       await DeploymentHandler.handleWalletSelection(ctx, walletId);
+    });
+
+    // Bundle launch handlers
+    bot.action('action_bundle_launch', BundleLaunchHandler.startLaunchFlow);
+    bot.action('bundle_save_config', BundleLaunchHandler.saveConfig);
+    bot.action('bundle_load_config', BundleLaunchHandler.loadConfig);
+    bot.action('bundle_review', BundleLaunchHandler.reviewLaunch);
+    bot.action('bundle_confirm_launch', BundleLaunchHandler.executeLaunch);
+    bot.action('bundle_cancel', async (ctx) => await ctx.reply('❌ Bundle launch cancelled.'));
+    bot.action('bundle_edit_token', async (ctx) => BundleLaunchHandler.handleEditParam(ctx, 'tokenName'));
+    bot.action('bundle_edit_wallets', async (ctx) => BundleLaunchHandler.handleEditParam(ctx, 'bundle_wallet_count'));
+    bot.action('bundle_edit_totalpct', async (ctx) => BundleLaunchHandler.handleEditParam(ctx, 'bundle_token_percent'));
+    bot.action('bundle_edit_split', async (ctx) => BundleLaunchHandler.handleEditParam(ctx, 'split'));
+    bot.action('bundle_edit_liquidityeth', async (ctx) => BundleLaunchHandler.handleEditParam(ctx, 'liquidity_eth_amount'));
+bot.action('bundle_edit_clog', async (ctx) => BundleLaunchHandler.handleEditParam(ctx, 'clog_percent'));
+bot.action('bundle_edit_fundingwallet', async (ctx) => BundleLaunchHandler.handleEditParam(ctx, 'fundingWalletName'));
+bot.action('bundle_edit_devwallet', async (ctx) => BundleLaunchHandler.handleEditParam(ctx, 'devWalletName'));
+    bot.action(/^bundle_select_token_(\d+)$/, async (ctx) => {
+      const idx = ctx.match[1];
+      await BundleLaunchHandler.handleSelectToken(ctx, idx);
+    });
+    bot.action(/^bundle_select_wallet_devWallet_(.+)$/, async (ctx) => {
+      const walletId = ctx.match[1];
+      await BundleLaunchHandler.handleSelectWallet(ctx, 'devWallet', walletId);
+    });
+    bot.action(/^bundle_select_wallet_fundingWallet_(.+)$/, async (ctx) => {
+      const walletId = ctx.match[1];
+      await BundleLaunchHandler.handleSelectWallet(ctx, 'fundingWallet', walletId);
+    });
+    // Handle text input for bundle parameter editing
+    bot.on('text', async (ctx, next) => {
+      if (ctx.session?.awaitingBundleParam) {
+        await BundleLaunchHandler.handleParamInput(ctx);
+        return;
+      }
+      if (next) await next();
     });
 
     // Error handlers
@@ -215,6 +253,42 @@ Current network: ${process.env.NETWORK || 'Local'}
         console.error('Error handling text message:', error);
         await ctx.reply('❌ An error occurred. Please try again.');
       }
+    });
+
+    // Settings handlers
+    bot.action('action_settings', ConfigurationsHandler.listConfigs);
+    bot.action(/^config_view_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      await ConfigurationsHandler.viewConfig(ctx, configId);
+    });
+    bot.action('config_create', ConfigurationsHandler.createConfig);
+    bot.action(/^config_edit_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      await ConfigurationsHandler.editConfig(ctx, configId);
+    });
+    bot.action(/^config_delete_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      await ConfigurationsHandler.deleteConfig(ctx, configId);
+    });
+    // Multi-parameter editing actions
+    bot.action(/^config_edit_param_([a-zA-Z0-9_]+)_(.+)$/, async (ctx) => {
+      const param = ctx.match[1];
+      await ConfigurationsHandler.handleEditParam(ctx, param);
+    });
+    bot.action(/^config_save_(.+)$/, async (ctx) => {
+      const isNew = ctx.match[1] === 'new';
+      await ConfigurationsHandler.saveConfig(ctx, isNew);
+    });
+    bot.action(/^config_cancel_(.+)$/, async (ctx) => {
+      await ConfigurationsHandler.listConfigs(ctx);
+    });
+    // Handle text input for parameter editing
+    bot.on('text', async (ctx, next) => {
+      if (ctx.session?.awaitingConfigParam) {
+        await ConfigurationsHandler.handleParamInput(ctx);
+        return;
+      }
+      if (next) await next();
     });
   }
 } 

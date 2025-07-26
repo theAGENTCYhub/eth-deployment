@@ -52,6 +52,12 @@ export interface SessionData {
     currentPage?: number;
     total?: number;
   };
+  // --- Bundle config editing ---
+  awaitingConfigParam?: string;
+  configEdit?: any;
+  // --- Bundle launch editing ---
+  awaitingBundleParam?: string;
+  bundleConfig?: any;
 }
 
 // Extend Telegraf context with session

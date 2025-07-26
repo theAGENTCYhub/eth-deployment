@@ -12,8 +12,8 @@ export const CONTRACT_ADDRESSES: Record<string, Record<string, string>> = {
         UniswapV2Router02: '0xeE567Fe1712Faf6149d80dA1E6934E354124CfE3',
     },
     hardhat: {
-        UniswapV2Factory: '0xYourLocalFactoryAddress',
-        UniswapV2Router02: '0xYourLocalRouterAddress',
+        UniswapV2Factory: '0x5C69bEe701ef814a2B6a3EDD4B1652CB9cc5aA6f',
+        UniswapV2Router02: '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D',
     },
     // Add more networks as needed
 };

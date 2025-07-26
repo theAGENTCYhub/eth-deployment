@@ -4,7 +4,10 @@ export class GeneralKeyboards {
   // Home screen keyboard
   static getHomeKeyboard() {
     return Markup.inlineKeyboard([
-      [Markup.button.callback('🚀 Deploy Token', 'action_deploy')],
+      [
+        Markup.button.callback('🚀 Deploy Token', 'action_deploy'),
+        Markup.button.callback('🎯 Bundle Launch', 'action_bundle_launch')
+      ],
       [
         Markup.button.callback('💼 My Wallets', 'action_wallets'),
         Markup.button.callback('📋 Contracts', 'action_contracts')

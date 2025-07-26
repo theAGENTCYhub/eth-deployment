@@ -6,11 +6,17 @@
   "scripts": {
     "build": "tsc",
     "test": "jest",
-    "test:config": "npx ts-jest config:init"
+    "test:config": "npx ts-jest config:init",
+    "test:bundle": "npx ts-node test-bundle-launch.ts",
+    "test:addresses": "npx ts-node get-contract-addresses.ts",
+    "test:validation": "npx ts-node test-bundle-validation.ts",
+    "setup:tokens": "npx ts-node setup-test-tokens.ts",
+    "test:equal-distribution": "npx ts-node test-equal-distribution.ts"
   },
   "dependencies": {
     "dotenv": "^17.2.0",
-    "ethers": "5.7.2"
+    "ethers": "5.7.2",
+    "@eth-deployer/supabase": "workspace:*"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",

@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@eth-deployer/supabase": "workspace:*",
+    "@eth-deployer/transactions": "workspace:*",
     "dotenv": "^17.2.0",
     "ethers": "5.7.2",
     "telegraf": "^4.16.3"

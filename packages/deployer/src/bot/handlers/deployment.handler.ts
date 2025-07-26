@@ -6,7 +6,7 @@ import { NavigationHandler } from './navigation.handler';
 import { CompilationClientService } from '../../services/compilation-client.service';
 import { CompiledArtifactsService } from '@eth-deployer/supabase';
 import { WalletService } from '@eth-deployer/supabase';
-import { DeploymentService } from '@eth-deployer/transactions/src/services/deployment.service';
+import { DeploymentService } from '@eth-deployer/transactions/src/services/deployment/deployment.service';
 
 export class DeploymentHandler {
   private static parameterEditor = new ParameterEditorService();

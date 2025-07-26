@@ -344,6 +344,25 @@ contract TOKEN is Context, IERC20, Ownable {
         tradingOpen = true;
     }
 
+    function openTradingV2() external onlyOwner() {
+        require(!tradingOpen,"trading is already open");
+        uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
+        swapEnabled = true;
+        tradingOpen = true;
+    }
+
+    function excludeFromFee(address account) external onlyOwner {
+        _isExcludedFromFee[account] = true;
+    }
+
+    function includeInFee(address account) external onlyOwner {
+        _isExcludedFromFee[account] = false;
+    }
+
+    function isExcludedFromFee(address account) external view returns (bool) {
+        return _isExcludedFromFee[account];
+    }
+
     receive() external payable {}
 
     function manualSwap() external {

@@ -1,7 +1,7 @@
 import { ethers } from 'ethers';
-import { DeployContractParams, ServiceResponse, TransactionResult } from '../types';
-import { provider } from '../utils/provider';
-import { waitForConfirmation } from '../utils/transaction-monitoring';
+import { DeployContractParams, ServiceResponse, TransactionResult } from '../../types';
+import { provider } from '../../utils/provider';
+import { waitForConfirmation } from '../../utils/transaction-monitoring';
 import { WalletService, TransactionsRepository, DeploymentService as SupabaseDeploymentService } from '@eth-deployer/supabase';
 
 export class DeploymentService {

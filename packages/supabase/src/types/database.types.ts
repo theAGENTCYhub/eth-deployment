@@ -18,8 +18,8 @@ export type Database = {
       graphql: {
         Args: {
           query?: string
-          extensions?: Json
           variables?: Json
+          extensions?: Json
           operationName?: string
         }
         Returns: Json
@@ -34,6 +34,131 @@ export type Database = {
   }
   public: {
     Tables: {
+      bundle_launches: {
+        Row: {
+          bundle_hash: string | null
+          bundle_timeout: number | null
+          bundle_token_percent: number
+          bundle_token_percent_per_wallet: number
+          bundle_wallet_count: number
+          created_at: string
+          dev_wallet_address: string
+          error_message: string | null
+          funding_wallet_address: string
+          id: string
+          liquidity_eth_amount: string
+          liquidity_token_percent: number
+          max_fee_per_gas: string | null
+          max_gas_price: string | null
+          max_priority_fee_per_gas: string | null
+          network: string
+          short_id: string
+          status: string
+          target_block: number | null
+          token_address: string
+          token_name: string
+          token_total_supply: string
+          total_cost: string | null
+          transaction_hashes: string[] | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          bundle_hash?: string | null
+          bundle_timeout?: number | null
+          bundle_token_percent: number
+          bundle_token_percent_per_wallet: number
+          bundle_wallet_count: number
+          created_at?: string
+          dev_wallet_address: string
+          error_message?: string | null
+          funding_wallet_address: string
+          id?: string
+          liquidity_eth_amount: string
+          liquidity_token_percent: number
+          max_fee_per_gas?: string | null
+          max_gas_price?: string | null
+          max_priority_fee_per_gas?: string | null
+          network: string
+          short_id: string
+          status?: string
+          target_block?: number | null
+          token_address: string
+          token_name: string
+          token_total_supply: string
+          total_cost?: string | null
+          transaction_hashes?: string[] | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          bundle_hash?: string | null
+          bundle_timeout?: number | null
+          bundle_token_percent?: number
+          bundle_token_percent_per_wallet?: number
+          bundle_wallet_count?: number
+          created_at?: string
+          dev_wallet_address?: string
+          error_message?: string | null
+          funding_wallet_address?: string
+          id?: string
+          liquidity_eth_amount?: string
+          liquidity_token_percent?: number
+          max_fee_per_gas?: string | null
+          max_gas_price?: string | null
+          max_priority_fee_per_gas?: string | null
+          network?: string
+          short_id?: string
+          status?: string
+          target_block?: number | null
+          token_address?: string
+          token_name?: string
+          token_total_supply?: string
+          total_cost?: string | null
+          transaction_hashes?: string[] | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bundle_wallets: {
+        Row: {
+          created_at: string | null
+          id: string
+          is_funded: boolean | null
+          launch_id: string | null
+          private_key_encrypted: string
+          wallet_address: string
+          wallet_index: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          is_funded?: boolean | null
+          launch_id?: string | null
+          private_key_encrypted: string
+          wallet_address: string
+          wallet_index?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          is_funded?: boolean | null
+          launch_id?: string | null
+          private_key_encrypted?: string
+          wallet_address?: string
+          wallet_index?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bundle_wallets_launch_id_fkey"
+            columns: ["launch_id"]
+            isOneToOne: false
+            referencedRelation: "bundle_launches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       compiled_artifacts: {
         Row: {
           artifacts: Json
@@ -219,6 +344,45 @@ export type Database = {
           },
         ]
       }
+      launch_configs: {
+        Row: {
+          bundle_token_percent: number
+          bundle_token_percent_per_wallet: number
+          bundle_wallet_count: number
+          created_at: string | null
+          eth_per_wallet: string
+          id: string
+          liquidity_eth_amount: string
+          liquidity_token_percent: number
+          name: string
+          user_id: string
+        }
+        Insert: {
+          bundle_token_percent: number
+          bundle_token_percent_per_wallet: number
+          bundle_wallet_count: number
+          created_at?: string | null
+          eth_per_wallet: string
+          id?: string
+          liquidity_eth_amount: string
+          liquidity_token_percent: number
+          name: string
+          user_id: string
+        }
+        Update: {
+          bundle_token_percent?: number
+          bundle_token_percent_per_wallet?: number
+          bundle_wallet_count?: number
+          created_at?: string | null
+          eth_per_wallet?: string
+          id?: string
+          liquidity_eth_amount?: string
+          liquidity_token_percent?: number
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       liquidity_positions: {
         Row: {
           amount_eth: string
@@ -302,8 +466,11 @@ export type Database = {
           amount: string
           average_cost_basis: string | null
           created_at: string
+          eth_spent: string | null
           id: string
+          launch_id: string | null
           short_id: string
+          status: string | null
           token_address: string
           updated_at: string
           wallet_address: string
@@ -312,8 +479,11 @@ export type Database = {
           amount: string
           average_cost_basis?: string | null
           created_at?: string
+          eth_spent?: string | null
           id?: string
+          launch_id?: string | null
           short_id: string
+          status?: string | null
           token_address: string
           updated_at?: string
           wallet_address: string
@@ -322,13 +492,24 @@ export type Database = {
           amount?: string
           average_cost_basis?: string | null
           created_at?: string
+          eth_spent?: string | null
           id?: string
+          launch_id?: string | null
           short_id?: string
+          status?: string | null
           token_address?: string
           updated_at?: string
           wallet_address?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "positions_launch_id_fkey"
+            columns: ["launch_id"]
+            isOneToOne: false
+            referencedRelation: "bundle_launches"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       token_launches: {
         Row: {
