@@ -41,9 +41,9 @@ INSERT INTO contract_templates (
   '// SPDX-License-Identifier: MIT
 
 /*
-Website: https://ellieeth.com
-Telegram: t.me/EllieDog
-X: x.com/EllieGoldERC
+Website: https://google.com
+Telegram: t.me/paveldurov
+X: x.com/elonmusk
 */
 
 pragma solidity ^0.8.28;
@@ -129,6 +129,7 @@ contract Ownable is Context {
 
 interface IUniswapV2Factory {
     function createPair(address tokenA, address tokenB) external returns (address pair);
+    function getPair(address tokenA, address tokenB) external view returns (address pair);
 }
 
 interface IUniswapV2Router02 {
@@ -344,11 +345,16 @@ contract TOKEN is Context, IERC20, Ownable {
         tradingOpen = true;
     }
 
-    function openTradingV2() external onlyOwner() {
+    function openTradingV2() external onlyOwner {
         require(!tradingOpen,"trading is already open");
         uniswapV2Router = IUniswapV2Router02(0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D);
         _approve(address(this), address(uniswapV2Router), _tTotal);
-        IERC20(uniswapV2Pair).approve(address(uniswapV2Router), type(uint).max);
+
+        address WETH = uniswapV2Router.WETH();
+        uniswapV2Pair = IUniswapV2Factory(uniswapV2Router.factory()).getPair(address(this), WETH);
+
+        require(uniswapV2Pair != address(0), "Liquidity pair does not exist. Make sure to add liquidity first.");
+
         swapEnabled = true;
         tradingOpen = true;
     }

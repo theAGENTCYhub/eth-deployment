@@ -29,6 +29,47 @@ export async function buildERC20TransferTx({ signer, tokenAddress, to, amount, n
   }
 }
 
+/**
+ * Build transaction for contract to approve LP tokens
+ */
+export async function buildLPTokenApproveTx({ 
+  signer, 
+  tokenAddress, 
+  pairAddress, 
+  nonce, 
+  gasLimit, 
+  gasPrice 
+}: {
+  signer: Signer,
+  tokenAddress: string,
+  pairAddress: string,
+  nonce?: number,
+  gasLimit?: BigNumber | string | number,
+  gasPrice?: BigNumber | string | number
+}): Promise<ServiceResponse<{ tx: ethers.PopulatedTransaction }>> {
+  try {
+    // Contract calls a function that approves LP tokens
+    const contract = new ethers.Contract(tokenAddress, [
+      'function approveLPTokens(address lpToken, address spender, uint256 amount) external'
+    ], signer);
+    
+    const routerAddress = '0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D';
+    const tx = await contract.populateTransaction.approveLPTokens(
+      pairAddress,
+      routerAddress,
+      ethers.constants.MaxUint256
+    );
+    
+    if (nonce !== undefined) tx.nonce = nonce;
+    if (gasLimit !== undefined) tx.gasLimit = BigNumber.from(gasLimit);
+    if (gasPrice !== undefined) tx.gasPrice = BigNumber.from(gasPrice);
+    
+    return { success: true, data: { tx } };
+  } catch (error) {
+    return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+
 export async function buildERC20ApproveTx({ signer, tokenAddress, spender, amount, nonce, gasLimit, gasPrice }: {
   signer: Signer,
   tokenAddress: string,
