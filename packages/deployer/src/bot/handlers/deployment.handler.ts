@@ -7,6 +7,7 @@ import { CompilationClientService } from '../../services/compilation-client.serv
 import { CompiledArtifactsService } from '@eth-deployer/supabase';
 import { WalletService } from '@eth-deployer/supabase';
 import { DeploymentService } from '@eth-deployer/transactions/src/services/deployment/deployment.service';
+import { ConfigurationService } from '../../services/configuration.service';
 
 export class DeploymentHandler {
   private static parameterEditor = new ParameterEditorService();
@@ -115,7 +116,8 @@ export class DeploymentHandler {
       if (missingDefs.length > 0) {
         screen.description += `\n\n⚠️ *Warning: The following parameters are missing definitions and cannot be edited properly:*\n${missingDefs.map(p => `• ${p}`).join('\n')}`;
       }
-      const keyboard = ParameterEditingKeyboards.getParameterEditingKeyboard(templateId, discoveredParams, parameterValues);
+      // Use category menu instead of the old keyboard
+      const keyboard = ParameterEditingKeyboards.categoryMenu(instanceId, ctx);
       const message = BotScreens.formatScreen(screen);
 
       if (ctx.callbackQuery) {
@@ -168,7 +170,15 @@ export class DeploymentHandler {
 
       // Generate screen and keyboard
       const screen = ParameterEditingScreens.getSingleParameterScreen(parameter, type, description, currentValue, isRequired);
-      const keyboard = ParameterEditingKeyboards.getSingleParameterKeyboard(templateId, parameter);
+      // Use a simple back keyboard instead of the old one
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: [
+            [{ text: '🔙 Back to Categories', callback_data: 'back_categories' }],
+            [{ text: '❌ Abort', callback_data: 'action_abort_deployment' }]
+          ]
+        }
+      };
       const message = BotScreens.formatScreen(screen);
 
       await ctx.editMessageText(message, {
@@ -346,32 +356,35 @@ export class DeploymentHandler {
         await ctx.reply('❌ No parameters to confirm. Please start over.');
         return;
       }
-      const { templateId, parameterValues, selectedWalletId } = ctx.session.deployState;
+      const { templateId, parameterValues, developerWalletId } = ctx.session.deployState;
       if (!templateId || !parameterValues) {
         await ctx.reply('❌ Missing template or parameters. Please start over.');
         return;
       }
       
-      // Check if wallet is selected
-      if (!selectedWalletId) {
-        await ctx.reply('❌ No wallet selected. Please select a wallet first.');
-        await DeploymentHandler.showParameterEditing(ctx, templateId);
+      // Check if developer wallet is selected
+      if (!developerWalletId) {
+        await ctx.reply('❌ No developer wallet selected. Please select a wallet first.');
+        await DeploymentHandler.handleDeveloperWalletSelection(ctx);
         return;
       }
+      
       const templateResult = await DeploymentHandler.parameterEditor.loadTemplate(templateId);
       if (!templateResult.success || !templateResult.data) {
         await ctx.reply('❌ Template not found. Please start over.');
         return;
       }
+      
       let walletInfo = '';
-      if (selectedWalletId) {
+      if (developerWalletId) {
         const walletService = new WalletService();
         const walletResult = await walletService.getAllWallets();
-        const wallet = walletResult.success && walletResult.data ? walletResult.data.find(w => w.id === selectedWalletId) : undefined;
+        const wallet = walletResult.success && walletResult.data ? walletResult.data.find(w => w.id === developerWalletId) : undefined;
         if (wallet) {
-          walletInfo = `\n\n*Selected Wallet:*\n• Address: \`${wallet.address}\`\n• Name: ${wallet.name || 'No nickname'}`;
+          walletInfo = `\n\n*Developer Wallet:*\n• Address: \`${wallet.address}\`\n• Name: ${wallet.name || 'No nickname'}`;
         }
       }
+      
       const template = templateResult.data;
       const paramArray = Object.entries(parameterValues).map(([key, value]) => ({ key, value }));
       const modifiedSource = DeploymentHandler.parameterEditor.replaceParameters(template.source_code, paramArray);
@@ -405,9 +418,9 @@ export class DeploymentHandler {
         await ctx.reply('❌ Not ready to deploy. Please configure parameters and select a wallet first.');
         return;
       }
-      const { templateId, parameterValues, modifiedSource, instanceId, selectedWalletId } = ctx.session.deployState;
-      if (!templateId || !parameterValues || !modifiedSource || !instanceId || !selectedWalletId) {
-        await ctx.reply('❌ Missing deployment data or wallet. Please start over.');
+      const { templateId, parameterValues, modifiedSource, instanceId, developerWalletId } = ctx.session.deployState;
+      if (!templateId || !parameterValues || !modifiedSource || !instanceId || !developerWalletId) {
+        await ctx.reply('❌ Missing deployment data or developer wallet. Please start over.');
         return;
       }
 
@@ -440,51 +453,25 @@ export class DeploymentHandler {
       const compilationClient = new CompilationClientService();
       let compileResult;
       try {
-        console.log('🔄 Sending compilation request...');
-        console.log('Contract name:', contractName);
-        console.log('Source code length:', modifiedSource.length);
-        
         compileResult = await compilationClient.compileContract(modifiedSource, contractName);
-        
-        console.log('📦 Compilation result:', compileResult);
-      } catch (error) {
-        console.error('❌ Compilation error:', error);
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        await DeploymentHandler.showDeploymentError(ctx, 'Compilation service error: ' + errorMessage);
+      } catch (compileError) {
+        console.error('Compilation error:', compileError);
+        await ctx.reply('❌ Contract compilation failed. Please check your parameters and try again.');
         return;
       }
 
-      if (!compileResult || !('success' in compileResult) || !compileResult.success) {
-        const errorMsg = (compileResult && 'error' in compileResult && compileResult.error) ? compileResult.error : 'Unknown compilation error';
-        await DeploymentHandler.showDeploymentError(ctx, 'Compilation failed: ' + errorMsg);
+      if (!compileResult.success) {
+        console.error('Compilation failed:', compileResult.error);
+        await ctx.reply(`❌ Compilation failed: ${compileResult.error || 'Unknown error'}`);
         return;
       }
 
-      // Save compilation artifact to database
-      const compiledArtifactsService = new CompiledArtifactsService();
-      const artifactSaveResult = await compiledArtifactsService.createCompiledArtifact({
-        instance_id: instanceId,
-        artifacts: compileResult
-      });
-      if (!artifactSaveResult.success) {
-        await DeploymentHandler.showDeploymentError(ctx, 'Failed to save compiled artifact: ' + (artifactSaveResult.error || 'Unknown error'));
-        return;
-      }
+      console.log('✅ Compilation successful!');
+      console.log('📋 Compilation result:', compileResult);
 
-      // Show deployment progress
-      const deploymentProgressScreen = {
-        title: "🚀 Deploying Contract...",
-        description: `
-*Deployment in Progress*
-
-✅ Contract compiled successfully
-🔄 Deploying to blockchain...
-🔄 Waiting for confirmation...
-
-This may take a few moments. Please wait...`,
-        footer: "Do not close this window ⏳"
-      };
-      await ctx.editMessageText(BotScreens.formatScreen(deploymentProgressScreen), {
+      // Show compilation success
+      const compilationScreen = DeploymentScreens.getCompilationSuccessScreen();
+      await ctx.editMessageText(BotScreens.formatScreen(compilationScreen), {
         parse_mode: 'Markdown'
       });
 
@@ -502,7 +489,7 @@ This may take a few moments. Please wait...`,
       console.log('Modified source preview:', modifiedSource.substring(0, 500));
       
       const deploymentResult = await deploymentService.deployContract({
-        walletId: selectedWalletId,
+        walletId: developerWalletId,
         bytecode: compileResult.bytecode,
         abi: compileResult.abi,
         constructorArgs: constructorArgs,
@@ -576,6 +563,293 @@ This may take a few moments. Please wait...`,
    */
   static async handleChooseWallet(ctx: BotContext) {
     await DeploymentHandler.showWalletSelection(ctx);
+  }
+
+  /**
+   * Show parameter categories instead of long list
+   */
+  static async showParameterCategories(ctx: BotContext) {
+    const instanceId = ctx.session.deployState?.instanceId;
+    if (!instanceId) {
+      await ctx.reply('❌ No active editing session found.');
+      return;
+    }
+    try {
+      const parameterEditor = new ParameterEditorService();
+      const result = await parameterEditor.getInstanceParameters(instanceId);
+      if (!result) {
+        await ctx.reply('❌ Failed to load parameters.');
+        return;
+      }
+      // Convert Record<string, string> to array format for calculateCategoryStatus
+      const parametersArray = Object.entries(result).map(([key, value]) => ({
+        parameter_key: key,
+        current_value: value
+      }));
+      // Calculate category completion status
+      const categories = DeploymentHandler.calculateCategoryStatus(parametersArray);
+      // Get developer wallet info if selected
+      let devWalletInfo = '';
+      const devWalletId = ctx.session.deployState?.developerWalletId;
+      if (devWalletId) {
+        const walletService = new WalletService();
+        const walletResult = await walletService.getAllWallets();
+        const wallet = walletResult.success && walletResult.data ? walletResult.data.find(w => w.id === devWalletId) : undefined;
+        if (wallet) {
+          devWalletInfo = `${wallet.name || wallet.address}`;
+        }
+      }
+      await ctx.reply(
+        ParameterEditingScreens.categoryMenu(instanceId, categories, devWalletInfo),
+        ParameterEditingKeyboards.categoryMenu(instanceId, ctx)
+      );
+    } catch (error) {
+      await ctx.reply('❌ An error occurred while loading the parameter editor.');
+    }
+  }
+
+  /**
+   * Handle developer wallet selection
+   */
+  static async handleDeveloperWalletSelection(ctx: BotContext) {
+    // Show a list of wallets for the user to select
+    const walletService = new WalletService();
+    const userId = ctx.from?.id?.toString() || 'unknown';
+    const walletsResult = await walletService.getWalletsByUser(userId);
+    if (!walletsResult.success || !walletsResult.data || walletsResult.data.length === 0) {
+      await ctx.reply('❌ No wallets found. Please add a wallet before selecting.');
+      return;
+    }
+    const wallets: any[] = walletsResult.data;
+    const keyboard = ParameterEditingKeyboards.devWalletSelectionKeyboard(wallets, ctx);
+    await ctx.reply('👤 *Select Developer Wallet*\n\nChoose a wallet to use for deployment:', { parse_mode: 'Markdown', ...keyboard });
+  }
+
+  /**
+   * Handle developer wallet selection callback
+   */
+  static async handleDeveloperWalletSelected(ctx: BotContext, walletId: string) {
+    if (!ctx.session.deployState) return;
+    ctx.session.deployState.developerWalletId = walletId;
+    await ctx.answerCbQuery('✅ Developer wallet selected!');
+    // Return to parameter categories
+    await DeploymentHandler.showParameterCategories(ctx);
+  }
+
+  // Add a handler for finish editing
+  static async handleFinishEditing(ctx: BotContext) {
+    // Check if developer wallet is selected
+    const devWalletId = ctx.session.deployState?.developerWalletId;
+    if (!devWalletId) {
+      await ctx.reply('❌ No wallet selected. Please select a wallet first.');
+      await DeploymentHandler.handleDeveloperWalletSelection(ctx);
+      return;
+    }
+    // Proceed to deployment review/confirmation
+    await DeploymentHandler.showParameterConfirmation(ctx);
+  }
+
+  /**
+   * Calculate completion status for each category
+   */
+  static calculateCategoryStatus(parameters: any[]): any {
+    const categories = {
+      basic: { count: 0, completed: false, total: 4 },
+      taxes: { count: 0, completed: false, total: 5 },
+      trading: { count: 0, completed: false, total: 3 },
+      limits: { count: 0, completed: false, total: 4 },
+      advanced: { count: 0, completed: false, total: 1 }
+    };
+    parameters.forEach(param => {
+      const hasValue = param.current_value && param.current_value.trim() !== '';
+      if ([
+        'TOKEN_NAME', 'TOKEN_SYMBOL', 'TOTAL_SUPPLY', 'DECIMALS'
+      ].includes(param.parameter_key)) {
+        if (hasValue) categories.basic.count++;
+      } else if ([
+        'INITIAL_BUY_TAX', 'INITIAL_SELL_TAX', 'FINAL_BUY_TAX', 'FINAL_SELL_TAX', 'TRANSFER_TAX'
+      ].includes(param.parameter_key)) {
+        if (hasValue) categories.taxes.count++;
+      } else if ([
+        'REDUCE_BUY_TAX_AT', 'REDUCE_SELL_TAX_AT', 'PREVENT_SWAP_BEFORE'
+      ].includes(param.parameter_key)) {
+        if (hasValue) categories.trading.count++;
+      } else if ([
+        'MAX_TX_AMOUNT_PERCENT', 'MAX_WALLET_SIZE_PERCENT', 'TAX_SWAP_LIMIT_PERCENT', 'MAX_SWAP_LIMIT_PERCENT'
+      ].includes(param.parameter_key)) {
+        if (hasValue) categories.limits.count++;
+      } else if ([
+        'TAX_WALLET'
+      ].includes(param.parameter_key)) {
+        if (hasValue) categories.advanced.count++;
+      }
+    });
+    // Mark categories as completed if all parameters have values
+    categories.basic.completed = categories.basic.count === categories.basic.total;
+    categories.taxes.completed = categories.taxes.count === categories.taxes.total;
+    categories.trading.completed = categories.trading.count === categories.trading.total;
+    categories.limits.completed = categories.limits.count === categories.limits.total;
+    categories.advanced.completed = categories.advanced.count === categories.advanced.total;
+    return categories;
+  }
+
+  /**
+   * Handle category navigation and parameter editing
+   */
+  static async handleCategoryNavigation(ctx: BotContext, category: string) {
+    const instanceId = ctx.session.deployState?.instanceId;
+    if (!instanceId) {
+      await ctx.reply('❌ No active editing session found.');
+      return;
+    }
+    try {
+      const parameterEditor = new ParameterEditorService();
+      const result = await parameterEditor.getInstanceParameters(instanceId);
+      if (!result) {
+        await ctx.reply('❌ Failed to load parameters.');
+        return;
+      }
+      const parametersArray = Object.entries(result).map(([key, value]) => ({ parameter_key: key, current_value: value }));
+      const keyboard = ParameterEditingKeyboards.categoryKeyboard(parametersArray, instanceId, category, ctx);
+      await ctx.reply(
+        `⚙️ *${category.charAt(0).toUpperCase() + category.slice(1)} Parameters*\n\nSelect a parameter to edit:`,
+        { parse_mode: 'Markdown', ...keyboard }
+      );
+    } catch (error) {
+      await ctx.reply('❌ An error occurred while loading the category.');
+    }
+  }
+
+  /**
+   * Handle save configuration
+   */
+  static async handleSaveConfiguration(ctx: BotContext) {
+    ctx.session.awaitingInput = 'config_name';
+    ctx.session.currentInstanceId = ctx.session.deployState?.instanceId;
+    await ctx.reply(
+      '💾 *Save Configuration*\n\nEnter a name for this configuration:',
+      { parse_mode: 'Markdown' }
+    );
+  }
+
+  /**
+   * Handle configuration name input
+   */
+  static async handleConfigurationNameInput(ctx: BotContext) {
+    if (!ctx.message || !('text' in ctx.message)) {
+      await ctx.reply('❌ Invalid message format.');
+      return;
+    }
+    const configName = ctx.message.text.trim();
+    if (!configName || configName.length > 30) {
+      await ctx.reply('❌ Configuration name must be 1-30 characters.');
+      return;
+    }
+    try {
+      const configService = new ConfigurationService();
+      if (!ctx.from) {
+        await ctx.reply('❌ User information not available.');
+        return;
+      }
+      const userId = ctx.from.id.toString();
+      const instanceId = ctx.session.currentInstanceId;
+      const templateId = ctx.session.deployState?.templateId;
+      if (!templateId) {
+        await ctx.reply('❌ Template information not available.');
+        return;
+      }
+      if (!instanceId) {
+        await ctx.reply('❌ Instance information not available.');
+        return;
+      }
+      const result = await configService.saveConfiguration(
+        userId,
+        configName,
+        instanceId,
+        templateId
+      );
+      if (result.success) {
+        await ctx.reply(
+          `✅ Configuration "*${configName}*" saved successfully!`,
+          { parse_mode: 'Markdown' }
+        );
+      } else {
+        await ctx.reply(`❌ Failed to save configuration: ${result.error}`);
+      }
+      ctx.session.awaitingInput = undefined;
+      // Return to parameter categories
+      return DeploymentHandler.showParameterCategories(ctx);
+    } catch (error) {
+      await ctx.reply('❌ An error occurred while saving the configuration.');
+      ctx.session.awaitingInput = undefined;
+    }
+  }
+
+  /**
+   * Handle load configuration
+   */
+  static async handleLoadConfiguration(ctx: BotContext) {
+    try {
+      const configService = new ConfigurationService();
+      if (!ctx.from) {
+        await ctx.reply('❌ User information not available.');
+        return;
+      }
+      const userId = ctx.from.id.toString();
+      const result = await configService.getUserConfigurations(userId);
+      if (!result.success || !result.data || result.data.length === 0) {
+        await ctx.reply('📂 No saved configurations found.');
+        return DeploymentHandler.showParameterCategories(ctx);
+      }
+      // Show saved configurations list
+      const keyboard = {
+        reply_markup: {
+          inline_keyboard: result.data.map(config => [
+            { 
+              text: `📋 ${config.name}`, 
+              callback_data: `load_config_${config.id}` 
+            }
+          ]).concat([[
+            { text: '🔙 Back to Categories', callback_data: 'back_categories' }
+          ]])
+        }
+      };
+      await ctx.reply(
+        '📂 *Load Configuration*\n\nSelect a configuration to load:',
+        { parse_mode: 'Markdown', ...keyboard }
+      );
+    } catch (error) {
+      await ctx.reply('❌ An error occurred while loading configurations.');
+    }
+  }
+
+  /**
+   * Handle load configuration selection
+   */
+  static async handleLoadConfigurationSelection(ctx: BotContext, configId: string) {
+    try {
+      const configService = new ConfigurationService();
+      if (!ctx.from) {
+        await ctx.reply('❌ User information not available.');
+        return;
+      }
+      const userId = ctx.from.id.toString();
+      const instanceId = ctx.session.deployState?.instanceId;
+      if (!instanceId) {
+        await ctx.reply('❌ No active editing session found.');
+        return;
+      }
+      const result = await configService.loadConfiguration(userId, configId, instanceId);
+      if (result.success) {
+        await ctx.reply('✅ Configuration loaded successfully!');
+      } else {
+        await ctx.reply(`❌ Failed to load configuration: ${result.error}`);
+      }
+      // Return to parameter categories
+      return DeploymentHandler.showParameterCategories(ctx);
+    } catch (error) {
+      await ctx.reply('❌ An error occurred while loading the configuration.');
+    }
   }
 
   // TODO: Add handler for '📋 My Contracts' to list active deployments (paginated)

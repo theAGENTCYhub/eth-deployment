@@ -41,7 +41,24 @@ export class ParameterEditingScreens {
             description: `\n*Template: ${escapeMarkdown(templateName)}*\n\n**Configured Parameters:**\n${Object.entries(parameterValues).map(([key, value]) => 
                 `• **${escapeMarkdown(key)}**: \`${escapeMarkdown(value)}\``
             ).join('\n')}\n\n**Preview (first few lines):**\n\`\`\`\n${escapeMarkdown(modifiedSource.split('\n').slice(0, 10).join('\n'))}\n\`\`\`\n\n*Ready to deploy?*\n✅ Parameters validated\n✅ Contract source ready\n✅ Network: ${escapeMarkdown(network)}`,
-            footer: "Review the configuration and click 'Deploy Contract' 👇"
+            footer: "Review the configuration and click 'Deploy Contract' ��"
         };
+    }
+
+    static categoryMenu(instanceId: string, categories: any, devWalletInfo?: string): string {
+      return `⚙️ *Contract Configuration*
+
+📋 *Parameter Categories:*
+Configure your token parameters by category for easier management.
+
+🔧 *Configuration Status:*
+• Basic Info: ${categories.basic.completed ? '✅' : '⏳'} (${categories.basic.count}/4)
+• Tax Settings: ${categories.taxes.completed ? '✅' : '⏳'} (${categories.taxes.count}/5)  
+• Trading Rules: ${categories.trading.completed ? '✅' : '⏳'} (${categories.trading.count}/3)
+• Transaction Limits: ${categories.limits.completed ? '✅' : '⏳'} (${categories.limits.count}/4)
+• Advanced: ${categories.advanced.completed ? '✅' : '⏳'} (${categories.advanced.count}/1)
+${devWalletInfo ? `• Developer Wallet: ${devWalletInfo}` : ''}
+
+*Select a category to configure:*`;
     }
 } 

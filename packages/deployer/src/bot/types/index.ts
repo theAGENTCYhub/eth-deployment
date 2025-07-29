@@ -35,6 +35,7 @@ export interface SessionData {
     currentParameter?: string;
     instanceId?: string;
     selectedWalletId?: string;
+    developerWalletId?: string;
   };
   // currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts' | 'template_selection' | 'parameter_editing' | 'deployment_confirmation' | 'deployment_progress' | 'deployment_result';
   currentScreen?: 'home' | 'deploy' | 'wallets' | 'contracts' | 'template_selection' | 'parameter_editing' | 'deployment_confirmation' | 'deployment_progress' | 'deployment_result'
@@ -64,6 +65,15 @@ export interface SessionData {
   positionsPage?: number;
   currentPositionId?: string;
   tradingMode?: 'buy' | 'sell';
+  // --- Contract management ---
+  editingContract?: {
+    id: string;
+    field: string;
+  };
+  awaitingInput?: string;
+  currentInstanceId?: string;
+  // --- Parameter editing navigation ---
+  paramCallbacks?: Map<string, { action: string; key?: string; walletId?: string; type: string }>;
 }
 
 // Extend Telegraf context with session

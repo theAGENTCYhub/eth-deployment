@@ -40,8 +40,8 @@ export class BotKeyboards {
   static getWalletDetailKeyboard = WalletKeyboards.getWalletDetailKeyboard;
 
   // Parameter editing keyboards
-  static getParameterEditingKeyboard = ParameterEditingKeyboards.getParameterEditingKeyboard;
-  static getSingleParameterKeyboard = ParameterEditingKeyboards.getSingleParameterKeyboard;
+  // static getParameterEditingKeyboard = ParameterEditingKeyboards.getParameterEditingKeyboard;
+  // static getSingleParameterKeyboard = ParameterEditingKeyboards.getSingleParameterKeyboard;
 
   // Contracts keyboards
   static getContractsMainKeyboard = ContractsKeyboards.getContractsMainKeyboard;
@@ -52,6 +52,8 @@ export class BotKeyboards {
   static getTemplatesListKeyboard = ContractsKeyboards.getTemplatesListKeyboard;
   static getTemplateDetailsKeyboard = ContractsKeyboards.getTemplateDetailsKeyboard;
   static getInstancesListKeyboard = ContractsKeyboards.getInstancesListKeyboard;
+  static getTokenFunctionsKeyboard = ContractsKeyboards.getTokenFunctionsKeyboard;
+  static getLiquidityPoolKeyboard = ContractsKeyboards.getLiquidityPoolKeyboard;
 
   // Launches keyboards
   static getLaunchesListKeyboard = LaunchesKeyboards.getLaunchesListKeyboard;

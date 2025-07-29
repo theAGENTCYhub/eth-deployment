@@ -97,6 +97,30 @@ export class CallbackManager {
   }
 
   /**
+   * Generate compressed callback data for contracts (under 20 chars)
+   */
+  static generateContractCallback(action: string, contractId: string): string {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2, 3);
+    const shortId = `c${timestamp}${random}`.substr(0, 20);
+    
+    // Store in callback map
+    this.callbackMap.set(shortId, {
+      action,
+      data: { contractId }
+    });
+    
+    return shortId;
+  }
+
+  /**
+   * Resolve compressed contract callback data
+   */
+  static resolveContractCallback(shortId: string): { action: string; data: any } | null {
+    return this.callbackMap.get(shortId) || null;
+  }
+
+  /**
    * Generate contracts page callback
    */
   static generateContractsPageCallback(page: number): string {
@@ -185,6 +209,45 @@ export class CallbackManager {
    */
   static generateTradeCancelCallback(launchId: string, walletId: string): string {
     return this.generateCallbackId('trade_cancel', { launchId, walletId });
+  }
+
+  /**
+   * Generate compressed parameter editing callback (under 20 chars)
+   */
+  static generateParamEditingCallback(action: string, instanceId: string, key?: string): string {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2, 3);
+    const shortId = `p${timestamp}${random}`.substr(0, 20);
+    
+    this.callbackMap.set(shortId, {
+      action,
+      data: { instanceId, key }
+    });
+    
+    return shortId;
+  }
+
+  /**
+   * Generate compressed developer wallet selection callback (under 20 chars)
+   */
+  static generateDevWalletCallback(walletId: string): string {
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2, 3);
+    const shortId = `w${timestamp}${random}`.substr(0, 20);
+    
+    this.callbackMap.set(shortId, {
+      action: 'select_dev_wallet',
+      data: { walletId }
+    });
+    
+    return shortId;
+  }
+
+  /**
+   * Resolve compressed parameter editing callback data
+   */
+  static resolveParamEditingCallback(shortId: string): { action: string; data: any } | null {
+    return this.callbackMap.get(shortId) || null;
   }
 } 
 

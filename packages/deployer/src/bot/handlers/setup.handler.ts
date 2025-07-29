@@ -176,6 +176,20 @@ Current network: ${process.env.NETWORK || 'Local'}
       }
     });
 
+    // Enhanced contract callback handlers (compressed callbacks starting with 'c')
+    bot.action(/^c[a-zA-Z0-9]+$/, async (ctx) => {
+      await ContractsHandler.handleEnhancedCallback(ctx);
+    });
+
+    // Contract header buttons (non-functional, just for visual organization)
+    bot.action('contract_actions_header', async (ctx) => {
+      await ctx.answerCbQuery('📋 Actions section');
+    });
+    
+    bot.action('contract_operations_header', async (ctx) => {
+      await ctx.answerCbQuery('⚙️ Operations section');
+    });
+
     bot.action('action_abort_deployment', async (ctx) => {
       await DeploymentHandler.abortDeployment(ctx);
     });
@@ -276,6 +290,68 @@ Current network: ${process.env.NETWORK || 'Local'}
       if (next) await next();
     });
 
+    // Parameter editing category navigation and config save/load
+    bot.action(/^p[a-zA-Z0-9]+$/, async (ctx) => {
+      if (!ctx.callbackQuery || !('data' in ctx.callbackQuery)) return;
+      const shortId = ctx.callbackQuery.data as string;
+      const resolvedCallback = CallbackManager.resolveParamEditingCallback(shortId);
+      if (!resolvedCallback) {
+        await ctx.answerCbQuery('❌ Invalid action.');
+        return;
+      }
+      const { action, data } = resolvedCallback;
+      switch (action) {
+        case 'cat_basic':
+          await DeploymentHandler.handleCategoryNavigation(ctx, 'basic');
+          break;
+        case 'cat_taxes':
+          await DeploymentHandler.handleCategoryNavigation(ctx, 'taxes');
+          break;
+        case 'cat_trading':
+          await DeploymentHandler.handleCategoryNavigation(ctx, 'trading');
+          break;
+        case 'cat_limits':
+          await DeploymentHandler.handleCategoryNavigation(ctx, 'limits');
+          break;
+        case 'cat_advanced':
+          await DeploymentHandler.handleCategoryNavigation(ctx, 'advanced');
+          break;
+        case 'back_categories':
+          await DeploymentHandler.showParameterCategories(ctx);
+          break;
+        case 'save_config':
+          await DeploymentHandler.handleSaveConfiguration(ctx);
+          break;
+        case 'load_config':
+          await DeploymentHandler.handleLoadConfiguration(ctx);
+          break;
+        case 'choose_dev_wallet':
+          await DeploymentHandler.handleDeveloperWalletSelection(ctx);
+          break;
+        case 'edit_param':
+          if (ctx.session.deployState?.templateId && data.key) {
+            await DeploymentHandler.showSingleParameterEditing(ctx, ctx.session.deployState.templateId, data.key);
+          }
+          break;
+        default:
+          await ctx.answerCbQuery('❌ Unknown action.');
+      }
+    });
+    // Handle finish editing
+    bot.action('deploy_review', async (ctx) => {
+      await DeploymentHandler.handleFinishEditing(ctx);
+    });
+    // Handle developer wallet selection
+    bot.action(/^select_dev_wallet_(.+)$/, async (ctx) => {
+      const walletId = ctx.match[1];
+      await DeploymentHandler.handleDeveloperWalletSelected(ctx, walletId);
+    });
+    // Load config selection
+    bot.action(/^load_config_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      await DeploymentHandler.handleLoadConfigurationSelection(ctx, configId);
+    });
+
     // Error handlers
     bot.action('retry', (ctx) => {
       // Retry based on current screen
@@ -295,7 +371,7 @@ Current network: ${process.env.NETWORK || 'Local'}
     });
 
     // Text message handler for parameter input
-    bot.on('text', async (ctx) => {
+    bot.on('text', async (ctx, next) => {
       try {
         // Check if we're in single parameter editing mode
         if (ctx.session.deployState?.step === 'editing_single_parameter') {
@@ -310,6 +386,16 @@ Current network: ${process.env.NETWORK || 'Local'}
         // Check if awaiting wallet import
         if (ctx.session.awaitingImportPrivateKey) {
           await WalletHandlers.handleImportPrivateKey(ctx);
+          return;
+        }
+        // Check if awaiting contract name input
+        if (ctx.session.awaitingInput === 'contract_name') {
+          await ContractsHandler.handleNameInput(ctx);
+          return;
+        }
+        // Check if awaiting config name input
+        if (ctx.session.awaitingInput === 'config_name') {
+          await DeploymentHandler.handleConfigurationNameInput(ctx);
           return;
         }
         // Default text handler
@@ -357,6 +443,21 @@ Current network: ${process.env.NETWORK || 'Local'}
         return;
       }
       if (next) await next();
+    });
+
+    // Handle developer wallet selection callbacks
+    bot.action(/^w[a-zA-Z0-9]+$/, async (ctx) => {
+      if (!ctx.callbackQuery || !('data' in ctx.callbackQuery)) return;
+      const shortId = ctx.callbackQuery.data as string;
+      const resolvedCallback = CallbackManager.resolveParamEditingCallback(shortId);
+      if (!resolvedCallback || resolvedCallback.action !== 'select_dev_wallet') {
+        await ctx.answerCbQuery('❌ Invalid wallet selection.');
+        return;
+      }
+      const walletId = resolvedCallback.data.walletId;
+      if (walletId) {
+        await DeploymentHandler.handleDeveloperWalletSelected(ctx, walletId);
+      }
     });
   }
 } 

@@ -5,6 +5,7 @@ import { ParameterEditingScreens } from './parameter-editing.screens';
 import { GeneralScreens } from './general.screens';
 import { LaunchesScreens } from './launches/launches.screens';
 import { LaunchManagementScreens } from './launch-management.screens';
+import { ContractsScreens } from './contracts.screens';
 
 // Export screen classes
 export { DeploymentScreens } from './deployment.screens';
@@ -13,6 +14,7 @@ export { ParameterEditingScreens } from './parameter-editing.screens';
 export { GeneralScreens } from './general.screens';
 export { LaunchesScreens } from './launches/launches.screens';
 export { LaunchManagementScreens } from './launch-management.screens';
+export { ContractsScreens } from './contracts.screens';
 
 // Types
 export type { ScreenContent } from './types';

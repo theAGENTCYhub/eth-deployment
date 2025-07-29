@@ -81,7 +81,7 @@ export class ContractsKeyboards {
   }
 
   /**
-   * Contract details keyboard
+   * Contract details keyboard with enhanced actions
    */
   static getContractDetailsKeyboard(contractId: string, explorerLink?: string | null) {
     const buttons = [];
@@ -90,17 +90,99 @@ export class ContractsKeyboards {
       buttons.push([Markup.button.url('🔍 View on Explorer', explorerLink)]);
     }
     
+    // Generate short callback IDs for enhanced actions
+    const editNameId = CallbackManager.generateContractCallback('edit_name', contractId);
+    const copyId = CallbackManager.generateContractCallback('copy', contractId);
+    const refreshId = CallbackManager.generateContractCallback('refresh', contractId);
+    const removeId = CallbackManager.generateContractCallback('remove', contractId);
+    
+    // Actions section
+    buttons.push([Markup.button.callback('-- System --', 'contract_actions_header')]);
     buttons.push([
-      Markup.button.callback('📋 Copy Address', CallbackManager.generateContractCopyCallback(contractId)),
-      Markup.button.callback('🗑️ Remove', CallbackManager.generateContractRemoveCallback(contractId))
+      Markup.button.callback('✏️ Rename', editNameId),
+      Markup.button.callback('📋 Copy Address', copyId)
+    ]);
+    buttons.push([
+      Markup.button.callback('🔄 Refresh Status', refreshId),
+      Markup.button.callback('🗑 Remove', removeId)
     ]);
     
+    // Operations section
+    buttons.push([Markup.button.callback('-- Manage Contract --', 'contract_operations_header')]);
+    buttons.push([Markup.button.callback('🏗️ Create Liq. Pool', CallbackManager.generateContractCallback('liq_create', contractId))]);
+    buttons.push([Markup.button.callback('👑 Renounce Ownership', CallbackManager.generateContractCallback('token_renounce', contractId))]);
+    buttons.push([Markup.button.callback('🔓 Open Trading', CallbackManager.generateContractCallback('token_open', contractId))]);
+    
     buttons.push([
-      Markup.button.callback('🔙 Back to List', 'contracts_view_deployed'),
-      Markup.button.callback('🏠 Home', 'action_home')
+      Markup.button.callback('🔙 Back to Contracts', 'contracts_view_deployed')
     ]);
 
     return Markup.inlineKeyboard(buttons);
+  }
+
+  /**
+   * Token functions keyboard
+   */
+  static getTokenFunctionsKeyboard(contractId: string) {
+    // Generate short callback IDs for token functions
+    const renounceId = CallbackManager.generateContractCallback('token_renounce', contractId);
+    const transferId = CallbackManager.generateContractCallback('token_transfer', contractId);
+    const openTradingId = CallbackManager.generateContractCallback('token_open', contractId);
+    const removeLimitsId = CallbackManager.generateContractCallback('token_limits', contractId);
+    const updateTaxId = CallbackManager.generateContractCallback('token_tax', contractId);
+    const backId = CallbackManager.generateContractCallback('back_detail', contractId);
+
+    return Markup.inlineKeyboard([
+      [
+        Markup.button.callback('👑 Renounce Ownership', renounceId),
+        Markup.button.callback('🔄 Transfer Ownership', transferId)
+      ],
+      [
+        Markup.button.callback('🔓 Open Trading', openTradingId),
+        Markup.button.callback('🚀 Remove Limits', removeLimitsId)
+      ],
+      [
+        Markup.button.callback('💸 Update Taxes', updateTaxId)
+      ],
+      [
+        Markup.button.callback('🔙 Back to Contract', backId)
+      ]
+    ]);
+  }
+
+  /**
+   * Liquidity pool keyboard
+   */
+  static getLiquidityPoolKeyboard(contractId: string, poolExists: boolean = false) {
+    const addId = CallbackManager.generateContractCallback('liq_add', contractId);
+    const removeId = CallbackManager.generateContractCallback('liq_remove', contractId);
+    const statsId = CallbackManager.generateContractCallback('liq_stats', contractId);
+    const refreshId = CallbackManager.generateContractCallback('liq_refresh', contractId);
+    const backId = CallbackManager.generateContractCallback('back_detail', contractId);
+
+    const baseButtons = [
+      [
+        Markup.button.callback('💧 Add Liquidity', addId),
+        Markup.button.callback('📤 Remove Liquidity', removeId)
+      ],
+      [
+        Markup.button.callback('📊 Pool Statistics', statsId),
+        Markup.button.callback('🔄 Refresh Info', refreshId)
+      ]
+    ];
+
+    if (!poolExists) {
+      const createId = CallbackManager.generateContractCallback('liq_create', contractId);
+      baseButtons.unshift([
+        Markup.button.callback('🏗️ Create Pool', createId)
+      ]);
+    }
+
+    baseButtons.push([
+      Markup.button.callback('🔙 Back to Contract', backId)
+    ]);
+
+    return Markup.inlineKeyboard(baseButtons);
   }
 
   /**
