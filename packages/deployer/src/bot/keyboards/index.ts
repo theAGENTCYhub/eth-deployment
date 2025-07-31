@@ -7,6 +7,9 @@ import { ParameterEditingKeyboards } from './parameter-editing.keyboards';
 import { ContractsKeyboards } from './contracts.keyboards';
 import { LaunchesKeyboards } from './launches/launches.keyboards';
 import { LaunchManagementKeyboards } from './launch-management.keyboards';
+import { DeploymentConfigsKeyboards } from './settings/deployment-configs.keyboards';
+import { LiquidityConfigsKeyboards } from './settings/liquidity-configs.keyboards';
+import { BundleConfigsKeyboards } from './settings/bundle-configs.keyboards';
 
 // Export keyboard classes
 export { GeneralKeyboards } from './general.keyboards';
@@ -16,6 +19,9 @@ export { ParameterEditingKeyboards } from './parameter-editing.keyboards';
 export { ContractsKeyboards } from './contracts.keyboards';
 export { LaunchesKeyboards } from './launches/launches.keyboards';
 export { LaunchManagementKeyboards } from './launch-management.keyboards';
+export { DeploymentConfigsKeyboards } from './settings/deployment-configs.keyboards';
+export { LiquidityConfigsKeyboards } from './settings/liquidity-configs.keyboards';
+export { BundleConfigsKeyboards } from './settings/bundle-configs.keyboards';
 
 // Main BotKeyboards class that provides access to all keyboard methods
 export class BotKeyboards {

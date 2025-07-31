@@ -59,6 +59,32 @@ export interface SessionData {
   // --- Bundle launch editing ---
   awaitingBundleParam?: string;
   bundleConfig?: any;
+  // --- Deployment config editing ---
+  deploymentConfigEdit?: any;
+  deploymentConfigMode?: 'create' | 'edit';
+  deploymentConfigProgress?: {
+    name?: boolean;
+    template_id?: boolean;
+    parameters?: boolean;
+  };
+  // --- Liquidity config editing ---
+  liquidityConfigEdit?: any;
+  liquidityConfigMode?: 'create' | 'edit';
+  liquidityConfigProgress?: {
+    name?: boolean;
+    initial_liquidity_eth?: boolean;
+    liquidity_wallet_id?: boolean;
+  };
+  // --- Bundle config editing ---
+  bundleConfigEdit?: any;
+  bundleConfigMode?: 'create' | 'edit';
+  bundleConfigProgress?: {
+    name?: boolean;
+    bundle_type?: boolean;
+    bundle_wallet_count?: boolean;
+    total_supply_percentage?: boolean;
+    funding_wallet_id?: boolean;
+  };
   // --- Launches management ---
   launchesPage?: number;
   currentLaunchId?: string;

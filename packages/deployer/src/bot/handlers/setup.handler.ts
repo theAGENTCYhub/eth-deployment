@@ -229,7 +229,10 @@ Current network: ${process.env.NETWORK || 'Local'}
     // Coming soon handlers
     bot.action('action_wallets', WalletHandlers.showWalletMain);
     bot.action('action_contracts', ContractsHandler.showContractsMain);
-    bot.action('action_settings', ConfigurationsHandler.listConfigs);
+    bot.action('action_settings', async (ctx) => {
+      const { SettingsHandler } = await import('./settings/settings.handler');
+      await SettingsHandler.showSettings(ctx);
+    });
     bot.action('action_launches', async (ctx) => {
       const { LaunchesHandler } = await import('./launches/launches.handler');
       await LaunchesHandler.showLaunchesList(ctx);
@@ -281,13 +284,223 @@ Current network: ${process.env.NETWORK || 'Local'}
       const { TradingHandler } = await import('./launches/trading.handler');
       await TradingHandler.setSlippage(ctx, launchId, walletId, slippage);
     });
-    // Handle text input for bundle parameter editing
+    // Handle text input for bundle parameter editing and config editing
     bot.on('text', async (ctx, next) => {
       if (ctx.session?.awaitingBundleParam) {
         await BundleLaunchHandler.handleParamInput(ctx);
         return;
       }
+      if (ctx.session?.awaitingConfigParam) {
+        // Handle config parameter input
+        const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+        const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+        const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+        
+        if (ctx.session.deploymentConfigEdit) {
+          await DeploymentConfigsHandler.handleParamInput(ctx);
+        } else if (ctx.session.liquidityConfigEdit) {
+          await LiquidityConfigsHandler.handleParamInput(ctx);
+        } else if (ctx.session.bundleConfigEdit) {
+          await BundleConfigsHandler.handleParamInput(ctx);
+        }
+        return;
+      }
       if (next) await next();
+    });
+
+    // Settings and Configuration Management Handlers
+    bot.action('settings_deployment_configs', async (ctx) => {
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.listConfigs(ctx);
+    });
+    
+    bot.action('settings_liquidity_configs', async (ctx) => {
+      const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+      await LiquidityConfigsHandler.listConfigs(ctx);
+    });
+    
+    bot.action('settings_bundle_configs', async (ctx) => {
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.listConfigs(ctx);
+    });
+
+    // Deployment Configs Actions
+    bot.action('dep_cfg_new', async (ctx) => {
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.createConfig(ctx);
+    });
+    
+    bot.action(/^dep_cfg_view_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.viewConfig(ctx, configId);
+    });
+    
+    bot.action(/^dep_cfg_edit_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.editConfig(ctx, configId);
+    });
+    
+    bot.action(/^dep_cfg_delete_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.deleteConfig(ctx, configId);
+    });
+    
+    bot.action('dep_cfg_list', async (ctx) => {
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.listConfigs(ctx);
+    });
+    
+    bot.action(/^dep_cfg_name_(.+)$/, async (ctx) => {
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.handleEditParam(ctx, 'name');
+    });
+    
+    bot.action(/^dep_cfg_cat_(.+)_(.+)$/, async (ctx) => {
+      const category = ctx.match[1];
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.showCategoryParameters(ctx, category);
+    });
+    
+    bot.action(/^dep_cfg_param_(.+)_(.+)$/, async (ctx) => {
+      const paramKey = ctx.match[1];
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.handleEditParam(ctx, paramKey);
+    });
+    
+    bot.action(/^dep_cfg_categories_(.+)$/, async (ctx) => {
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.showParameterCategories(ctx);
+    });
+    
+    bot.action(/^dep_cfg_save_(.+)$/, async (ctx) => {
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.saveConfig(ctx);
+    });
+    
+    bot.action(/^dep_cfg_cancel_(.+)$/, async (ctx) => {
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.cancelEdit(ctx);
+    });
+
+    // Liquidity Configs Actions
+    bot.action('liq_cfg_new', async (ctx) => {
+      const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+      await LiquidityConfigsHandler.createConfig(ctx);
+    });
+    
+    bot.action(/^liq_cfg_view_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+      await LiquidityConfigsHandler.viewConfig(ctx, configId);
+    });
+    
+    bot.action(/^liq_cfg_edit_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+      await LiquidityConfigsHandler.editConfig(ctx, configId);
+    });
+    
+    bot.action(/^liq_cfg_delete_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+      await LiquidityConfigsHandler.deleteConfig(ctx, configId);
+    });
+    
+    bot.action('liq_cfg_list', async (ctx) => {
+      const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+      await LiquidityConfigsHandler.listConfigs(ctx);
+    });
+    
+    bot.action(/^liq_cfg_name_(.+)$/, async (ctx) => {
+      const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+      await LiquidityConfigsHandler.handleEditParam(ctx, 'name');
+    });
+    
+    bot.action(/^liq_cfg_eth_(.+)$/, async (ctx) => {
+      const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+      await LiquidityConfigsHandler.handleEditParam(ctx, 'initial_liquidity_eth');
+    });
+    
+    bot.action(/^liq_cfg_wallet_(.+)$/, async (ctx) => {
+      const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+      await LiquidityConfigsHandler.handleEditParam(ctx, 'liquidity_wallet_id');
+    });
+    
+    bot.action(/^liq_cfg_save_(.+)$/, async (ctx) => {
+      const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+      await LiquidityConfigsHandler.saveConfig(ctx);
+    });
+    
+    bot.action(/^liq_cfg_cancel_(.+)$/, async (ctx) => {
+      const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+      await LiquidityConfigsHandler.cancelEdit(ctx);
+    });
+
+    // Bundle Configs Actions
+    bot.action('bundle_cfg_new', async (ctx) => {
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.createConfig(ctx);
+    });
+    
+    bot.action(/^bundle_cfg_view_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.viewConfig(ctx, configId);
+    });
+    
+    bot.action(/^bundle_cfg_edit_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.editConfig(ctx, configId);
+    });
+    
+    bot.action(/^bundle_cfg_delete_(.+)$/, async (ctx) => {
+      const configId = ctx.match[1];
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.deleteConfig(ctx, configId);
+    });
+    
+    bot.action('bundle_cfg_list', async (ctx) => {
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.listConfigs(ctx);
+    });
+    
+    bot.action(/^bundle_cfg_name_(.+)$/, async (ctx) => {
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.handleEditParam(ctx, 'name');
+    });
+    
+    bot.action(/^bundle_cfg_type_(.+)$/, async (ctx) => {
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.handleEditParam(ctx, 'bundle_type');
+    });
+    
+    bot.action(/^bundle_cfg_wallets_(.+)$/, async (ctx) => {
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.handleEditParam(ctx, 'bundle_wallet_count');
+    });
+    
+    bot.action(/^bundle_cfg_supply_(.+)$/, async (ctx) => {
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.handleEditParam(ctx, 'total_supply_percentage');
+    });
+    
+    bot.action(/^bundle_cfg_funding_(.+)$/, async (ctx) => {
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.showWalletSelection(ctx);
+    });
+    
+    bot.action(/^bundle_cfg_save_(.+)$/, async (ctx) => {
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.saveConfig(ctx);
+    });
+    
+    bot.action(/^bundle_cfg_cancel_(.+)$/, async (ctx) => {
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.cancelEdit(ctx);
     });
 
     // Parameter editing category navigation and config save/load
@@ -439,7 +652,20 @@ Current network: ${process.env.NETWORK || 'Local'}
     // Handle text input for parameter editing
     bot.on('text', async (ctx, next) => {
       if (ctx.session?.awaitingConfigParam) {
-        await ConfigurationsHandler.handleParamInput(ctx);
+        // Route to the correct config handler based on which config is being edited
+        if (ctx.session.deploymentConfigEdit) {
+          const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+          await DeploymentConfigsHandler.handleParamInput(ctx);
+        } else if (ctx.session.liquidityConfigEdit) {
+          const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+          await LiquidityConfigsHandler.handleParamInput(ctx);
+        } else if (ctx.session.bundleConfigEdit) {
+          const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+          await BundleConfigsHandler.handleParamInput(ctx);
+        } else {
+          // Fallback to old handler if no specific config is being edited
+          await ConfigurationsHandler.handleParamInput(ctx);
+        }
         return;
       }
       if (next) await next();
@@ -457,6 +683,19 @@ Current network: ${process.env.NETWORK || 'Local'}
       const walletId = resolvedCallback.data.walletId;
       if (walletId) {
         await DeploymentHandler.handleDeveloperWalletSelected(ctx, walletId);
+      }
+    });
+
+    // Delete message handler
+    bot.action('delete_msg', async (ctx) => {
+      try {
+        if (ctx.callbackQuery?.message) {
+          await ctx.deleteMessage(ctx.callbackQuery.message.message_id);
+        }
+        await ctx.answerCbQuery();
+      } catch (error) {
+        console.error('Error deleting message:', error);
+        await ctx.answerCbQuery('❌ Failed to delete message');
       }
     });
   }

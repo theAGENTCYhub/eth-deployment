@@ -17,10 +17,10 @@ export type Database = {
     Functions: {
       graphql: {
         Args: {
-          query?: string
-          variables?: Json
-          extensions?: Json
           operationName?: string
+          extensions?: Json
+          variables?: Json
+          query?: string
         }
         Returns: Json
       }
@@ -34,6 +34,56 @@ export type Database = {
   }
   public: {
     Tables: {
+      bundle_configs: {
+        Row: {
+          bundle_type: string
+          bundle_wallet_count: number | null
+          created_at: string | null
+          description: string | null
+          funding_wallet_id: string | null
+          id: string
+          name: string
+          target_marketcap_usd: string | null
+          total_supply_percentage: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          bundle_type?: string
+          bundle_wallet_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          funding_wallet_id?: string | null
+          id?: string
+          name: string
+          target_marketcap_usd?: string | null
+          total_supply_percentage?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          bundle_type?: string
+          bundle_wallet_count?: number | null
+          created_at?: string | null
+          description?: string | null
+          funding_wallet_id?: string | null
+          id?: string
+          name?: string
+          target_marketcap_usd?: string | null
+          total_supply_percentage?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bundle_configs_funding_wallet_id_fkey"
+            columns: ["funding_wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       bundle_launches: {
         Row: {
           bundle_hash: string | null
@@ -293,6 +343,33 @@ export type Database = {
         }
         Relationships: []
       }
+      deployment_configs: {
+        Row: {
+          created_at: string | null
+          id: string
+          name: string
+          parameters: Json | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          name: string
+          parameters?: Json | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          name?: string
+          parameters?: Json | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       deployments: {
         Row: {
           contract_address: string
@@ -382,6 +459,47 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      liquidity_configs: {
+        Row: {
+          created_at: string | null
+          description: string | null
+          id: string
+          initial_liquidity_eth: string | null
+          liquidity_wallet_id: string | null
+          name: string
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          initial_liquidity_eth?: string | null
+          liquidity_wallet_id?: string | null
+          name: string
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          initial_liquidity_eth?: string | null
+          liquidity_wallet_id?: string | null
+          name?: string
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "liquidity_configs_liquidity_wallet_id_fkey"
+            columns: ["liquidity_wallet_id"]
+            isOneToOne: false
+            referencedRelation: "wallets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       liquidity_positions: {
         Row: {
