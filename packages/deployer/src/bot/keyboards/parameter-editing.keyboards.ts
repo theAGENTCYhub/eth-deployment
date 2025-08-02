@@ -13,6 +13,7 @@ const PARAMETER_CATEGORIES = {
   taxes: ['INITIAL_BUY_TAX', 'INITIAL_SELL_TAX', 'FINAL_BUY_TAX', 'FINAL_SELL_TAX', 'TRANSFER_TAX'],
   trading: ['REDUCE_BUY_TAX_AT', 'REDUCE_SELL_TAX_AT', 'PREVENT_SWAP_BEFORE'],
   limits: ['MAX_TX_AMOUNT_PERCENT', 'MAX_WALLET_SIZE_PERCENT', 'TAX_SWAP_LIMIT_PERCENT', 'MAX_SWAP_LIMIT_PERCENT'],
+  social: ['TWITTER_LINK', 'WEBSITE_LINK', 'TELEGRAM_LINK'],
   advanced: ['TAX_WALLET']
 };
 
@@ -25,8 +26,8 @@ export class ParameterEditingKeyboards {
     const taxesId = CallbackManager.generateParamEditingCallback('cat_taxes', instanceId);
     const tradingId = CallbackManager.generateParamEditingCallback('cat_trading', instanceId);
     const limitsId = CallbackManager.generateParamEditingCallback('cat_limits', instanceId);
+    const socialId = CallbackManager.generateParamEditingCallback('cat_social', instanceId);
     const advancedId = CallbackManager.generateParamEditingCallback('cat_advanced', instanceId);
-    const devWalletId = CallbackManager.generateParamEditingCallback('choose_dev_wallet', instanceId);
     const saveId = CallbackManager.generateParamEditingCallback('save_config', instanceId);
     const loadId = CallbackManager.generateParamEditingCallback('load_config', instanceId);
 
@@ -35,10 +36,10 @@ export class ParameterEditingKeyboards {
         inline_keyboard: [
           [{ text: '📋 Basic Info', callback_data: basicId }, { text: '💰 Tax Settings', callback_data: taxesId }],
           [{ text: '📈 Trading Rules', callback_data: tradingId }, { text: '🚫 Limits', callback_data: limitsId }],
-          [{ text: '⚙️ Advanced', callback_data: advancedId }],
-          [{ text: '👤 Developer Wallet', callback_data: devWalletId }],
+          [{ text: '🌐 Social Media', callback_data: socialId }, { text: '⚙️ Advanced', callback_data: advancedId }],
           [{ text: '💾 Save Config', callback_data: saveId }, { text: '📂 Load Config', callback_data: loadId }],
-          [{ text: '✅ Finish Editing', callback_data: 'deploy_review' }, { text: '🔙 Back', callback_data: 'deploy_template_selected' }]
+          [{ text: '💼 Select Wallet', callback_data: 'choose_wallet' }, { text: '✅ Finish Editing', callback_data: 'deploy_review' }],
+          [{ text: '🔙 Back', callback_data: 'deploy_template_selected' }]
         ]
       }
     };
@@ -98,6 +99,9 @@ export class ParameterEditingKeyboards {
       'TRANSFER_TAX': 'Transfer %',
       'REDUCE_BUY_TAX_AT': 'Reduce Buy At',
       'REDUCE_SELL_TAX_AT': 'Reduce Sell At',
+      'TWITTER_LINK': 'Twitter',
+      'WEBSITE_LINK': 'Website',
+      'TELEGRAM_LINK': 'Telegram',
       'PREVENT_SWAP_BEFORE': 'Prevent Swap',
       'MAX_TX_AMOUNT_PERCENT': 'Max TX %',
       'MAX_WALLET_SIZE_PERCENT': 'Max Wallet %',

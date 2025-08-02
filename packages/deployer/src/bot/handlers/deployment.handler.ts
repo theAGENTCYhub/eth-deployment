@@ -219,13 +219,31 @@ export class DeploymentHandler {
         return;
       }
 
-      // Validate the single parameter
-      const validationResult = await DeploymentHandler.parameterEditor.validateParameters([{ key: currentParameter, value: input }]);
+      // Special validation for social media parameters
+      const socialParams = ['TWITTER_LINK', 'WEBSITE_LINK', 'TELEGRAM_LINK'];
+      let validationResult;
+      
+      if (socialParams.includes(currentParameter)) {
+        validationResult = DeploymentHandler.parameterEditor.validateSocialMediaParameters([
+          { key: currentParameter, value: input }
+        ]);
+        
+        if (!validationResult.success && validationResult.errors) {
+          const errorMessage = `❌ Invalid social media link for ${currentParameter}:\n\n${validationResult.errors.join('\n')}\n\nPlease provide a valid URL starting with http:// or https://`;
+          await ctx.reply(errorMessage);
+          return;
+        }
+      } else {
+        // Standard validation for other parameters
+        validationResult = await DeploymentHandler.parameterEditor.validateParameters([
+          { key: currentParameter, value: input }
+        ]);
 
-      if (!validationResult.success && validationResult.errors) {
-        const errorMessage = `❌ Invalid value for ${currentParameter}:\n\n${validationResult.errors.join('\n')}`;
-        await ctx.reply(errorMessage);
-        return;
+        if (!validationResult.success && validationResult.errors) {
+          const errorMessage = `❌ Invalid value for ${currentParameter}:\n\n${validationResult.errors.join('\n')}`;
+          await ctx.reply(errorMessage);
+          return;
+        }
       }
 
       // Store the validated parameter value
@@ -501,6 +519,16 @@ export class DeploymentHandler {
       if (deploymentResult.success && deploymentResult.data) {
         console.log('✅ Deployment successful!');
         
+        // Update the contract instance with the final source code
+        try {
+          await DeploymentHandler.parameterEditor.updateInstanceStatus(instanceId, 'deployed');
+          // Update the source code with the final compiled version
+          await DeploymentHandler.parameterEditor.updateInstanceSourceCode(instanceId, modifiedSource);
+          console.log('✅ Updated contract instance with final source code');
+        } catch (updateError) {
+          console.error('Warning: Failed to update contract instance with final source code:', updateError);
+        }
+        
         // Show success screen
         await DeploymentHandler.showDeploymentSuccess(ctx, {
           contractAddress: deploymentResult.data.contractAddress,
@@ -534,6 +562,44 @@ export class DeploymentHandler {
         reply_markup: keyboard.reply_markup
       });
 
+      // Automatically send the source code file
+      try {
+        const instanceId = ctx.session.deployState?.instanceId;
+        if (instanceId) {
+          const SourceExportService = require('../../services/source-export.service').SourceExportService;
+          const exportService = new SourceExportService();
+          const exportResult = await exportService.exportSourceCode(instanceId);
+          
+          if (exportResult.success && exportResult.fileName && exportResult.fileContent) {
+            try {
+              const fileData = exportService.formatForTelegram(exportResult.fileContent, exportResult.fileName);
+              
+              // Create InputFile object for Telegram
+              const inputFile = {
+                source: fileData.source,
+                filename: fileData.filename
+              };
+              
+              await ctx.replyWithDocument(inputFile, { 
+                caption: '📄 *Source Code Exported*\n\nYour contract source code has been sent as a file above. You can download and use it for verification or further development.',
+                parse_mode: 'Markdown'
+              });
+            } catch (uploadError) {
+              console.error('Error uploading source code file:', uploadError);
+              // Fallback: send as text if file upload fails
+              await ctx.reply(`📄 *Source Code*\n\n\`\`\`solidity\n${exportResult.fileContent.substring(0, 4000)}...\n\`\`\`\n\n*Note: File was too large to send as attachment. You can copy the code above.*`, {
+                parse_mode: 'Markdown'
+              });
+            }
+          } else {
+            console.error('Failed to export source code:', exportResult.error);
+          }
+        }
+      } catch (exportError) {
+        console.error('Error exporting source code:', exportError);
+        // Don't fail the deployment success if export fails
+      }
+
     } catch (error) {
       console.error('Error showing deployment success:', error);
       await ctx.reply('❌ Failed to show deployment success.');
@@ -562,7 +628,7 @@ export class DeploymentHandler {
    * Handle choose wallet callback from parameter editing
    */
   static async handleChooseWallet(ctx: BotContext) {
-    await DeploymentHandler.showWalletSelection(ctx);
+    await DeploymentHandler.handleDeveloperWalletSelection(ctx);
   }
 
   /**
@@ -588,19 +654,8 @@ export class DeploymentHandler {
       }));
       // Calculate category completion status
       const categories = DeploymentHandler.calculateCategoryStatus(parametersArray);
-      // Get developer wallet info if selected
-      let devWalletInfo = '';
-      const devWalletId = ctx.session.deployState?.developerWalletId;
-      if (devWalletId) {
-        const walletService = new WalletService();
-        const walletResult = await walletService.getAllWallets();
-        const wallet = walletResult.success && walletResult.data ? walletResult.data.find(w => w.id === devWalletId) : undefined;
-        if (wallet) {
-          devWalletInfo = `${wallet.name || wallet.address}`;
-        }
-      }
       await ctx.reply(
-        ParameterEditingScreens.categoryMenu(instanceId, categories, devWalletInfo),
+        ParameterEditingScreens.categoryMenu(instanceId, categories),
         ParameterEditingKeyboards.categoryMenu(instanceId, ctx)
       );
     } catch (error) {
@@ -632,21 +687,27 @@ export class DeploymentHandler {
     if (!ctx.session.deployState) return;
     ctx.session.deployState.developerWalletId = walletId;
     await ctx.answerCbQuery('✅ Developer wallet selected!');
-    // Return to parameter categories
-    await DeploymentHandler.showParameterCategories(ctx);
+    
+    // Return to parameter editing screen instead of going directly to confirmation
+    if (ctx.session.deployState.templateId) {
+      await DeploymentHandler.showParameterEditing(ctx, ctx.session.deployState.templateId);
+    } else {
+      await ctx.reply('❌ Template not found. Please start over.');
+    }
   }
 
   // Add a handler for finish editing
   static async handleFinishEditing(ctx: BotContext) {
-    // Check if developer wallet is selected
-    const devWalletId = ctx.session.deployState?.developerWalletId;
-    if (!devWalletId) {
-      await ctx.reply('❌ No wallet selected. Please select a wallet first.');
+    // Check if a developer wallet is already selected
+    const selectedWalletId = ctx.session.deployState?.developerWalletId;
+    
+    if (selectedWalletId) {
+      // Wallet already selected, proceed directly to parameter confirmation
+      await DeploymentHandler.showParameterConfirmation(ctx);
+    } else {
+      // No wallet selected, prompt user to select one
       await DeploymentHandler.handleDeveloperWalletSelection(ctx);
-      return;
     }
-    // Proceed to deployment review/confirmation
-    await DeploymentHandler.showParameterConfirmation(ctx);
   }
 
   /**
@@ -658,6 +719,7 @@ export class DeploymentHandler {
       taxes: { count: 0, completed: false, total: 5 },
       trading: { count: 0, completed: false, total: 3 },
       limits: { count: 0, completed: false, total: 4 },
+      social: { count: 0, completed: false, total: 3 },
       advanced: { count: 0, completed: false, total: 1 }
     };
     parameters.forEach(param => {
@@ -679,6 +741,10 @@ export class DeploymentHandler {
       ].includes(param.parameter_key)) {
         if (hasValue) categories.limits.count++;
       } else if ([
+        'TWITTER_LINK', 'WEBSITE_LINK', 'TELEGRAM_LINK'
+      ].includes(param.parameter_key)) {
+        if (hasValue) categories.social.count++;
+      } else if ([
         'TAX_WALLET'
       ].includes(param.parameter_key)) {
         if (hasValue) categories.advanced.count++;
@@ -689,6 +755,7 @@ export class DeploymentHandler {
     categories.taxes.completed = categories.taxes.count === categories.taxes.total;
     categories.trading.completed = categories.trading.count === categories.trading.total;
     categories.limits.completed = categories.limits.count === categories.limits.total;
+    categories.social.completed = categories.social.count === categories.social.total;
     categories.advanced.completed = categories.advanced.count === categories.advanced.total;
     return categories;
   }

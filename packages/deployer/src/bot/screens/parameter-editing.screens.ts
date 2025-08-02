@@ -28,24 +28,75 @@ export class ParameterEditingScreens {
     static getSingleParameterScreen(parameter: string, type: string, description: string, currentValue: string, isRequired: boolean): ScreenContent {
         const required = isRequired ? ' (Required)' : '';
         
+        // Special guidance for social media parameters
+        let examples = '';
+        if (parameter === 'TWITTER_LINK') {
+            examples = '• https://x.com/yourproject\n• https://twitter.com/yourproject';
+        } else if (parameter === 'WEBSITE_LINK') {
+            examples = '• https://yourproject.com\n• https://www.yourproject.com';
+        } else if (parameter === 'TELEGRAM_LINK') {
+            examples = '• https://t.me/yourproject\n• https://telegram.me/yourproject';
+        } else {
+            examples = `${type === 'string' ? '• "My Token Name"' : ''}\n${type === 'number' ? '• 1000000' : ''}\n${type === 'address' ? '• 0x1234567890123456789012345678901234567890' : ''}\n${type === 'boolean' ? '• true or false' : ''}`;
+        }
+        
         return {
             title: `⚙️ Edit Parameter: ${escapeMarkdown(parameter)}`,
-            description: `\n*Parameter Details:*\n• **Name:** ${escapeMarkdown(parameter)}${required}\n• **Type:** ${escapeMarkdown(type)}\n• **Description:** ${escapeMarkdown(description)}\n• **Current Value:** ${escapeMarkdown(currentValue) || 'Not set'}\n\n*How to set value:*\n📝 Reply with the new value for this parameter.\n\n*Examples:*\n${type === 'string' ? '• "My Token Name"' : ''}\n${type === 'number' ? '• 1000000' : ''}\n${type === 'address' ? '• 0x1234567890123456789012345678901234567890' : ''}\n${type === 'boolean' ? '• true or false' : ''}`,
+            description: `\n*Parameter Details:*\n• **Name:** ${escapeMarkdown(parameter)}${required}\n• **Type:** ${escapeMarkdown(type)}\n• **Description:** ${escapeMarkdown(description)}\n• **Current Value:** ${escapeMarkdown(currentValue) || 'Not set'}\n\n*How to set value:*\n📝 Reply with the new value for this parameter.\n\n*Examples:*\n${examples}`,
             footer: "Reply with the new value below 👇"
         };
     }
 
     static getParameterConfirmationScreen(templateName: string, parameterValues: Record<string, string>, modifiedSource: string, network: string): ScreenContent {
+        // Group parameters by category for better display
+        const socialParams = ['TWITTER_LINK', 'WEBSITE_LINK', 'TELEGRAM_LINK'];
+        const basicParams = ['TOKEN_NAME', 'TOKEN_SYMBOL', 'TOTAL_SUPPLY', 'DECIMALS'];
+        const otherParams = Object.keys(parameterValues).filter(key => 
+            !socialParams.includes(key) && !basicParams.includes(key)
+        );
+        
+        let description = `\n*Template: ${escapeMarkdown(templateName)}*\n\n**Configured Parameters:**`;
+        
+        // Display basic parameters first
+        if (basicParams.some(key => parameterValues[key])) {
+            description += `\n\n*Basic Info:*`;
+            basicParams.forEach(key => {
+                if (parameterValues[key]) {
+                    description += `\n• **${escapeMarkdown(key)}**: \`${escapeMarkdown(parameterValues[key])}\``;
+                }
+            });
+        }
+        
+        // Display social media parameters
+        if (socialParams.some(key => parameterValues[key])) {
+            description += `\n\n*Social Media:*`;
+            socialParams.forEach(key => {
+                if (parameterValues[key]) {
+                    description += `\n• **${escapeMarkdown(key)}**: \`${escapeMarkdown(parameterValues[key])}\``;
+                }
+            });
+        }
+        
+        // Display other parameters
+        if (otherParams.length > 0) {
+            description += `\n\n*Other Settings:*`;
+            otherParams.forEach(key => {
+                if (parameterValues[key]) {
+                    description += `\n• **${escapeMarkdown(key)}**: \`${escapeMarkdown(parameterValues[key])}\``;
+                }
+            });
+        }
+        
+        description += `\n\n**Preview (first few lines):**\n\`\`\`\n${escapeMarkdown(modifiedSource.split('\n').slice(0, 10).join('\n'))}\n\`\`\`\n\n*Ready to deploy?*\n✅ Parameters validated\n✅ Contract source ready\n✅ Network: ${escapeMarkdown(network)}`;
+        
         return {
             title: `✅ Parameter Configuration Complete`,
-            description: `\n*Template: ${escapeMarkdown(templateName)}*\n\n**Configured Parameters:**\n${Object.entries(parameterValues).map(([key, value]) => 
-                `• **${escapeMarkdown(key)}**: \`${escapeMarkdown(value)}\``
-            ).join('\n')}\n\n**Preview (first few lines):**\n\`\`\`\n${escapeMarkdown(modifiedSource.split('\n').slice(0, 10).join('\n'))}\n\`\`\`\n\n*Ready to deploy?*\n✅ Parameters validated\n✅ Contract source ready\n✅ Network: ${escapeMarkdown(network)}`,
-            footer: "Review the configuration and click 'Deploy Contract' ��"
+            description: description,
+            footer: "Review the configuration and click 'Deploy Contract' 🚀"
         };
     }
 
-    static categoryMenu(instanceId: string, categories: any, devWalletInfo?: string): string {
+    static categoryMenu(instanceId: string, categories: any): string {
       return `⚙️ *Contract Configuration*
 
 📋 *Parameter Categories:*
@@ -56,8 +107,8 @@ Configure your token parameters by category for easier management.
 • Tax Settings: ${categories.taxes.completed ? '✅' : '⏳'} (${categories.taxes.count}/5)  
 • Trading Rules: ${categories.trading.completed ? '✅' : '⏳'} (${categories.trading.count}/3)
 • Transaction Limits: ${categories.limits.completed ? '✅' : '⏳'} (${categories.limits.count}/4)
+• Social Media: ${categories.social.completed ? '✅' : '⏳'} (${categories.social.count}/3)
 • Advanced: ${categories.advanced.completed ? '✅' : '⏳'} (${categories.advanced.count}/1)
-${devWalletInfo ? `• Developer Wallet: ${devWalletInfo}` : ''}
 
 *Select a category to configure:*`;
     }

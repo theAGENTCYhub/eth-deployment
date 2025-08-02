@@ -72,7 +72,10 @@ This may take a few moments. Please wait...`,
 \`${deploymentResult.contractAddress}\`
 
 📋 **Transaction Hash:** 
-\`${deploymentResult.transactionHash}\``,
+\`${deploymentResult.transactionHash}\`
+
+📄 **Source Code:** 
+Your contract source code has been sent as a file above. You can download and use it for verification or further development.`,
             footer: "Click 'Home' to return to the main menu"
         };
     }

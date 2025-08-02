@@ -526,6 +526,9 @@ Current network: ${process.env.NETWORK || 'Local'}
         case 'cat_limits':
           await DeploymentHandler.handleCategoryNavigation(ctx, 'limits');
           break;
+        case 'cat_social':
+          await DeploymentHandler.handleCategoryNavigation(ctx, 'social');
+          break;
         case 'cat_advanced':
           await DeploymentHandler.handleCategoryNavigation(ctx, 'advanced');
           break;

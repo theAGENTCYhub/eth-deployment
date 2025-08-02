@@ -260,4 +260,63 @@ export class ParameterEditorService {
     }
     return {};
   }
+
+  // Add a public method to update source code for a contract instance
+  async updateInstanceSourceCode(instanceId: string, sourceCode: string): Promise<{ success: boolean; error?: string }> {
+    return await this.contractInstances.updateSourceCode(instanceId, sourceCode);
+  }
+
+  // Add a public method to get contract instance by ID
+  async getInstanceById(instanceId: string): Promise<{ success: boolean; data?: any; error?: string }> {
+    return await this.contractInstances.getById(instanceId);
+  }
+
+  /**
+   * Validate social media parameters specifically
+   * @param parameters Parameter values to validate
+   * @returns Array of validation errors for social media parameters
+   */
+  validateSocialMediaParameters(parameters: ParameterValue[]): { success: boolean; errors?: string[] } {
+    const errors: string[] = [];
+    const socialParams = ['TWITTER_LINK', 'WEBSITE_LINK', 'TELEGRAM_LINK'];
+    
+    for (const param of parameters) {
+      if (socialParams.includes(param.key)) {
+        const value = param.value;
+        
+        // Skip validation if value is empty (optional parameters)
+        if (!value || value.trim() === '') {
+          continue;
+        }
+        
+        // Basic URL validation
+        if (!value.startsWith('http://') && !value.startsWith('https://')) {
+          errors.push(`${param.key} must be a valid URL starting with http:// or https://`);
+        }
+        
+        // Platform-specific validation
+        if (param.key === 'TWITTER_LINK' && !value.includes('x.com') && !value.includes('twitter.com')) {
+          errors.push(`${param.key} should be a valid Twitter/X URL (x.com or twitter.com)`);
+        }
+        
+        if (param.key === 'TELEGRAM_LINK' && !value.includes('t.me') && !value.includes('telegram.me')) {
+          errors.push(`${param.key} should be a valid Telegram URL (t.me or telegram.me)`);
+        }
+      }
+    }
+    
+    return { success: errors.length === 0, errors: errors.length > 0 ? errors : undefined };
+  }
+
+  /**
+   * Get default values for social media parameters
+   * @returns Object with default social media parameter values
+   */
+  getSocialMediaDefaults(): Record<string, string> {
+    return {
+      'TWITTER_LINK': 'https://x.com/elonmusk',
+      'WEBSITE_LINK': 'https://google.com',
+      'TELEGRAM_LINK': 'https://t.me/paveldurov'
+    };
+  }
 } 

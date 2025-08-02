@@ -175,6 +175,25 @@ export class ContractInstancesRepository {
     }
   }
 
+  async updateSourceCode(id: string, sourceCode: string): Promise<{ success: boolean; data?: ContractInstance; error?: string }> {
+    try {
+      const { data: instance, error } = await supabase
+        .from('contract_instances')
+        .update({ source_code: sourceCode })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) {
+        return { success: false, error: error.message };
+      }
+
+      return { success: true, data: instance };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
   async delete(id: string): Promise<{ success: boolean; error?: string }> {
     try {
       const { error } = await supabase
