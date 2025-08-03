@@ -249,5 +249,12 @@ export class CallbackManager {
   static resolveParamEditingCallback(shortId: string): { action: string; data: any } | null {
     return this.callbackMap.get(shortId) || null;
   }
+
+  /**
+   * Resolve compressed wallet selection callback data
+   */
+  static resolveWalletCallback(shortId: string): { action: string; data: any } | null {
+    return this.callbackMap.get(shortId) || null;
+  }
 } 
 

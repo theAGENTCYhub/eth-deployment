@@ -370,13 +370,26 @@ export class DeploymentHandler {
    */
   static async showParameterConfirmation(ctx: BotContext) {
     try {
-      if (!ctx.session.deployState || !ctx.session.deployState.parameterValues) {
-        await ctx.reply('❌ No parameters to confirm. Please start over.');
+      if (!ctx.session.deployState) {
+        await ctx.reply('❌ No deployment session found. Please start over.');
         return;
       }
-      const { templateId, parameterValues, developerWalletId } = ctx.session.deployState;
-      if (!templateId || !parameterValues) {
-        await ctx.reply('❌ Missing template or parameters. Please start over.');
+      
+      const { templateId, parameterValues, developerWalletId, instanceId } = ctx.session.deployState;
+      
+      if (!templateId) {
+        await ctx.reply('❌ Missing template. Please start over.');
+        return;
+      }
+      
+      // If parameterValues is not in session, load it from the instance
+      let finalParameterValues = parameterValues;
+      if (!finalParameterValues && instanceId) {
+        finalParameterValues = await DeploymentHandler.parameterEditor.getInstanceParameters(instanceId);
+      }
+      
+      if (!finalParameterValues) {
+        await ctx.reply('❌ No parameters to confirm. Please start over.');
         return;
       }
       
@@ -404,11 +417,11 @@ export class DeploymentHandler {
       }
       
       const template = templateResult.data;
-      const paramArray = Object.entries(parameterValues).map(([key, value]) => ({ key, value }));
+      const paramArray = Object.entries(finalParameterValues).map(([key, value]) => ({ key, value }));
       const modifiedSource = DeploymentHandler.parameterEditor.replaceParameters(template.source_code, paramArray);
       const screen = ParameterEditingScreens.getParameterConfirmationScreen(
         template.name,
-        parameterValues,
+        finalParameterValues,
         modifiedSource,
         process.env.NETWORK || 'Local'
       );
@@ -421,8 +434,10 @@ export class DeploymentHandler {
         reply_markup: keyboard.reply_markup
       });
       ctx.session.deployState.modifiedSource = modifiedSource;
+      ctx.session.deployState.parameterValues = finalParameterValues;
       ctx.session.deployState.step = 'ready_to_deploy';
     } catch (error) {
+      console.error('Error in showParameterConfirmation:', error);
       await ctx.reply('❌ Failed to confirm parameters. Please try again.');
     }
   }
@@ -552,9 +567,28 @@ export class DeploymentHandler {
    */
   static async showDeploymentSuccess(ctx: BotContext, deploymentResult: any) {
     try {
-      const screen = DeploymentScreens.getDeploymentSuccessScreen(deploymentResult);
+      // Create pending launch record
+      const launchResult = await this.createPendingLaunch(ctx, deploymentResult);
+      
+      // Get the short_id for the keyboard if launch was created successfully
+      let shortId: string | undefined;
+      if (launchResult.success && launchResult.launchId) {
+        const { TokenLaunchesService } = await import('@eth-deployer/supabase');
+        const launchesService = new TokenLaunchesService();
+        const launchDetails = await launchesService.getTokenLaunchById(launchResult.launchId);
+        if (launchDetails.success && launchDetails.data) {
+          shortId = launchDetails.data.short_id;
+        }
+      }
+      
+      const screen = launchResult.success 
+        ? DeploymentScreens.getDeploymentSuccessWithLaunchScreen(deploymentResult, !!launchResult.launchId)
+        : DeploymentScreens.getDeploymentSuccessScreen(deploymentResult);
 
-      const keyboard = DeploymentKeyboards.getDeploymentSuccessKeyboard();
+      const keyboard = launchResult.success
+        ? DeploymentKeyboards.getDeploymentSuccessWithLaunchKeyboard(shortId)
+        : DeploymentKeyboards.getDeploymentSuccessKeyboard();
+        
       const message = BotScreens.formatScreen(screen);
 
       await ctx.editMessageText(message, {
@@ -562,9 +596,15 @@ export class DeploymentHandler {
         reply_markup: keyboard.reply_markup
       });
 
+      // Update session
+      const instanceId = ctx.session.deployState?.instanceId;
+      ctx.session.deployState = undefined;
+      if (launchResult.success && launchResult.launchId) {
+        ctx.session.currentLaunchId = launchResult.launchId;
+      }
+
       // Automatically send the source code file
       try {
-        const instanceId = ctx.session.deployState?.instanceId;
         if (instanceId) {
           const SourceExportService = require('../../services/source-export.service').SourceExportService;
           const exportService = new SourceExportService();
@@ -603,6 +643,128 @@ export class DeploymentHandler {
     } catch (error) {
       console.error('Error showing deployment success:', error);
       await ctx.reply('❌ Failed to show deployment success.');
+    }
+  }
+
+  /**
+   * Create pending launch record after successful deployment
+   */
+  private static async createPendingLaunch(
+    ctx: BotContext,
+    deploymentResult: any
+  ): Promise<{ success: boolean; launchId?: string; error?: string }> {
+    try {
+      if (!ctx.from) {
+        return { success: false, error: 'User information not available' };
+      }
+
+      const userId = ctx.from.id.toString();
+      const instanceId = ctx.session.deployState?.instanceId;
+      
+      if (!instanceId) {
+        return { success: false, error: 'No contract instance found' };
+      }
+
+      // Get contract instance details
+      const { ContractInstancesService } = await import('@eth-deployer/supabase');
+      const contractInstancesService = new ContractInstancesService();
+      const instanceResult = await contractInstancesService.getContractInstanceById(instanceId);
+      
+      if (!instanceResult.success || !instanceResult.data) {
+        return { success: false, error: 'Failed to get contract instance details' };
+      }
+
+      const contractInstance = instanceResult.data;
+      
+      // Get deployment details
+      const { DeploymentsService } = await import('@eth-deployer/supabase');
+      const deploymentsService = new DeploymentsService();
+      const deploymentDetails = await deploymentsService.getDeploymentByContractAddress(deploymentResult.contractAddress);
+      
+      if (!deploymentDetails.success || !deploymentDetails.data) {
+        return { success: false, error: 'Failed to get deployment details' };
+      }
+
+      // Get wallet details
+      const { WalletService } = await import('@eth-deployer/supabase');
+      const walletService = new WalletService();
+      const walletResult = await walletService.getWalletById(deploymentDetails.data.wallet_id);
+      
+      if (!walletResult.success || !walletResult.data) {
+        return { success: false, error: 'Failed to get wallet details' };
+      }
+
+      // Create launch data
+      const launchData = {
+        user_id: userId,
+        short_id: '', // Will be auto-generated by database trigger
+        token_address: deploymentResult.contractAddress,
+        token_name: contractInstance.name,
+        token_total_supply: this.extractTotalSupply(contractInstance.parameters) || '1000000000000000000000000', // 1M tokens default
+        dev_wallet_address: walletResult.data.address,
+        funding_wallet_address: walletResult.data.address, // Same for standalone
+        launch_type: 'standalone' as const,
+        
+        // Mark as standalone launch (not yet configured)
+        bundle_wallet_count: 0,
+        bundle_token_percent: 0,
+        bundle_token_percent_per_wallet: 0,
+        
+        // Default liquidity values (will be configured later)
+        liquidity_eth_amount: "0",
+        liquidity_token_percent: 0,
+        
+        // Execution configuration
+        network: process.env.NETWORK || 'hardhat',
+        max_gas_price: null,
+        max_priority_fee_per_gas: null,
+        max_fee_per_gas: null,
+        target_block: null,
+        bundle_timeout: null,
+        
+        // Status
+        status: 'not_launched' as const,
+        error_message: null,
+        
+        // Results (empty for now)
+        bundle_hash: null,
+        transaction_hashes: null,
+        total_cost: null
+      };
+
+      // Create launch record
+      const { TokenLaunchesService } = await import('@eth-deployer/supabase');
+      const launchesService = new TokenLaunchesService();
+      const result = await launchesService.createTokenLaunch(launchData);
+      
+      if (result.success && result.data) {
+        console.log('✅ Pending launch created:', result.data.launchId);
+        return { success: true, launchId: result.data.launchId };
+      } else {
+        console.error('❌ Failed to create pending launch:', result.error);
+        return { success: false, error: result.error };
+      }
+      
+    } catch (error) {
+      console.error('❌ Error creating pending launch:', error);
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  /**
+   * Extract total supply from contract parameters
+   */
+  private static extractTotalSupply(parameters: any): string | null {
+    try {
+      if (typeof parameters === 'string') {
+        const parsed = JSON.parse(parameters);
+        return parsed.TOTAL_SUPPLY || null;
+      } else if (parameters && typeof parameters === 'object') {
+        return parameters.TOTAL_SUPPLY || null;
+      }
+      return null;
+    } catch {
+      return null;
     }
   }
 
@@ -688,12 +850,8 @@ export class DeploymentHandler {
     ctx.session.deployState.developerWalletId = walletId;
     await ctx.answerCbQuery('✅ Developer wallet selected!');
     
-    // Return to parameter editing screen instead of going directly to confirmation
-    if (ctx.session.deployState.templateId) {
-      await DeploymentHandler.showParameterEditing(ctx, ctx.session.deployState.templateId);
-    } else {
-      await ctx.reply('❌ Template not found. Please start over.');
-    }
+    // Proceed to parameter confirmation instead of going back to editing
+    await DeploymentHandler.showParameterConfirmation(ctx);
   }
 
   // Add a handler for finish editing

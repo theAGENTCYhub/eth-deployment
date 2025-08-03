@@ -15,8 +15,17 @@ export class BotHandlers {
     try {
       ctx.session.currentScreen = 'home';
       
-      const screen = GeneralScreens.getHomeScreen();
-      const keyboard = GeneralKeyboards.getHomeKeyboard();
+      // Determine if user is new or returning
+      const userName = ctx.from?.first_name;
+      const hasLaunches = await BotHandlers.checkUserHasLaunches(ctx);
+      
+      const screen = hasLaunches 
+        ? GeneralScreens.getHomeScreen(userName)
+        : GeneralScreens.getWelcomeScreen();
+        
+      const keyboard = hasLaunches
+        ? GeneralKeyboards.getHomeKeyboard()
+        : GeneralKeyboards.getWelcomeKeyboard();
       
       const message = BotScreens.formatScreen(screen);
       
@@ -32,9 +41,32 @@ export class BotHandlers {
           reply_markup: keyboard.reply_markup
         });
       }
+
+      // Update session
+      delete ctx.session.deployState;
+      delete ctx.session.launchState;
+
     } catch (error) {
       console.error('Error showing home screen:', error);
       await BotHandlers.showError(ctx, 'Failed to load home screen');
+    }
+  }
+
+  /**
+   * Check if user has any launches
+   */
+  private static async checkUserHasLaunches(ctx: BotContext): Promise<boolean> {
+    try {
+      if (!ctx.from) return false;
+      
+      const { TokenLaunchesService } = await import('@eth-deployer/supabase');
+      const launchesService = new TokenLaunchesService();
+      const result = await launchesService.getUserLaunches(ctx.from.id.toString());
+      
+      return !!(result.success && result.data && result.data.length > 0);
+    } catch (error) {
+      console.error('Error checking user launches:', error);
+      return false;
     }
   }
 

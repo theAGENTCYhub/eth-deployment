@@ -29,6 +29,31 @@ export class DeploymentKeyboards {
     ]);
   }
 
+  // Deployment success with launch keyboard
+  static getDeploymentSuccessWithLaunchKeyboard(launchId?: string) {
+    const buttons = [];
+
+    if (launchId) {
+      buttons.push([
+        Markup.button.callback('🚀 Configure Launch', `launch_detail_${launchId}`)
+      ]);
+      buttons.push([
+        Markup.button.callback('🎯 View All Launches', 'action_launches')
+      ]);
+    } else {
+      buttons.push([
+        Markup.button.callback('🎯 My Launches', 'action_launches')
+      ]);
+    }
+
+    buttons.push([
+      Markup.button.callback('🚀 Deploy Another Token', 'action_deploy'),
+      Markup.button.callback('🏠 Home', 'action_home')
+    ]);
+
+    return Markup.inlineKeyboard(buttons);
+  }
+
   // Deployment error keyboard
   static getDeploymentErrorKeyboard() {
     return Markup.inlineKeyboard([

@@ -110,7 +110,7 @@ export class LaunchesHandler {
   static async showLaunchManagement(ctx: BotContext, launchId: string) {
     try {
       const { LaunchManagementHandler } = await import('./launch-management.handler');
-      await LaunchManagementHandler.showManagementScreen(ctx, launchId);
+      await LaunchManagementHandler.showLaunchDetail(ctx, launchId);
     } catch (error) {
       console.error('Error showing launch management:', error);
       await ctx.answerCbQuery('❌ Failed to load management options');

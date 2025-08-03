@@ -6,7 +6,8 @@ import { WalletKeyboards } from './wallet.keyboards';
 import { ParameterEditingKeyboards } from './parameter-editing.keyboards';
 import { ContractsKeyboards } from './contracts.keyboards';
 import { LaunchesKeyboards } from './launches/launches.keyboards';
-import { LaunchManagementKeyboards } from './launch-management.keyboards';
+import { LaunchesListKeyboards } from './launches/launches-list.keyboards';
+import { LaunchManagementKeyboards } from './launches/launch-management.keyboards';
 import { DeploymentConfigsKeyboards } from './settings/deployment-configs.keyboards';
 import { LiquidityConfigsKeyboards } from './settings/liquidity-configs.keyboards';
 import { BundleConfigsKeyboards } from './settings/bundle-configs.keyboards';
@@ -18,7 +19,8 @@ export { WalletKeyboards } from './wallet.keyboards';
 export { ParameterEditingKeyboards } from './parameter-editing.keyboards';
 export { ContractsKeyboards } from './contracts.keyboards';
 export { LaunchesKeyboards } from './launches/launches.keyboards';
-export { LaunchManagementKeyboards } from './launch-management.keyboards';
+export { LaunchesListKeyboards } from './launches/launches-list.keyboards';
+export { LaunchManagementKeyboards } from './launches/launch-management.keyboards';
 export { DeploymentConfigsKeyboards } from './settings/deployment-configs.keyboards';
 export { LiquidityConfigsKeyboards } from './settings/liquidity-configs.keyboards';
 export { BundleConfigsKeyboards } from './settings/bundle-configs.keyboards';
@@ -27,6 +29,7 @@ export { BundleConfigsKeyboards } from './settings/bundle-configs.keyboards';
 export class BotKeyboards {
   // General keyboards
   static getHomeKeyboard = GeneralKeyboards.getHomeKeyboard;
+  static getWelcomeKeyboard = GeneralKeyboards.getWelcomeKeyboard;
   static getDeployKeyboard = GeneralKeyboards.getDeployKeyboard;
   static getConfirmationKeyboard = GeneralKeyboards.getConfirmationKeyboard;
   static getBackKeyboard = GeneralKeyboards.getBackKeyboard;
@@ -38,6 +41,7 @@ export class BotKeyboards {
   static getTemplateSelectionKeyboard = DeploymentKeyboards.getTemplateSelectionKeyboard;
   static getDeploymentConfirmationKeyboard = DeploymentKeyboards.getDeploymentConfirmationKeyboard;
   static getDeploymentSuccessKeyboard = DeploymentKeyboards.getDeploymentSuccessKeyboard;
+  static getDeploymentSuccessWithLaunchKeyboard = DeploymentKeyboards.getDeploymentSuccessWithLaunchKeyboard;
   static getDeploymentErrorKeyboard = DeploymentKeyboards.getDeploymentErrorKeyboard;
 
   // Wallet keyboards
@@ -61,7 +65,7 @@ export class BotKeyboards {
   static getTokenFunctionsKeyboard = ContractsKeyboards.getTokenFunctionsKeyboard;
   static getLiquidityPoolKeyboard = ContractsKeyboards.getLiquidityPoolKeyboard;
 
-  // Launches keyboards
+  // Legacy launches keyboards (for backward compatibility)
   static getLaunchesListKeyboard = LaunchesKeyboards.getLaunchesListKeyboard;
   static getLaunchManagementKeyboard = LaunchesKeyboards.getLaunchManagementKeyboard;
   static getPositionsListKeyboard = LaunchesKeyboards.getPositionsListKeyboard;
@@ -72,11 +76,17 @@ export class BotKeyboards {
   static getSlippageKeyboard = LaunchesKeyboards.getSlippageKeyboard;
   static getEmptyLaunchesKeyboard = LaunchesKeyboards.getEmptyLaunchesKeyboard;
 
-  // Launch management keyboards
+  // Unified launches keyboards
+  static getUnifiedLaunchesListKeyboard = LaunchesListKeyboards.getLaunchesListKeyboard;
+
+  // Unified launch management keyboards
+  static getUnifiedLaunchManagementKeyboard = LaunchManagementKeyboards.getManagementKeyboard;
+
+  // Legacy launch management keyboards (for backward compatibility)
   static getManagementKeyboard = LaunchManagementKeyboards.getManagementKeyboard;
-  static getAddLiquidityKeyboard = LaunchManagementKeyboards.getAddLiquidityKeyboard;
-  static getRemoveLiquidityKeyboard = LaunchManagementKeyboards.getRemoveLiquidityKeyboard;
-  static getCloseTradingKeyboard = LaunchManagementKeyboards.getCloseTradingKeyboard;
-  static getUpdateLimitsKeyboard = LaunchManagementKeyboards.getUpdateLimitsKeyboard;
-  static getBackToManagementKeyboard = LaunchManagementKeyboards.getBackToManagementKeyboard;
+  // static getAddLiquidityKeyboard = LaunchManagementKeyboards.getAddLiquidityKeyboard;
+  // static getRemoveLiquidityKeyboard = LaunchManagementKeyboards.getRemoveLiquidityKeyboard;
+  // static getCloseTradingKeyboard = LaunchManagementKeyboards.getCloseTradingKeyboard;
+  // static getUpdateLimitsKeyboard = LaunchManagementKeyboards.getUpdateLimitsKeyboard;
+  // static getBackToManagementKeyboard = LaunchManagementKeyboards.getBackToManagementKeyboard;
 }

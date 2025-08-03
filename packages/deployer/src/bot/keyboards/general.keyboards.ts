@@ -1,24 +1,36 @@
 import { Markup } from 'telegraf';
 
 export class GeneralKeyboards {
-  // Home screen keyboard
+  // Home screen keyboard - full functionality
   static getHomeKeyboard() {
     return Markup.inlineKeyboard([
+      [Markup.button.callback('🎯 My Launches', 'action_launches')],
+      [Markup.button.callback('🚀 Deploy New Token', 'action_deploy')],
       [
-        Markup.button.callback('🚀 Deploy Token', 'action_deploy'),
-        Markup.button.callback('🎯 Bundle Launch', 'action_bundle_launch')
+        Markup.button.callback('💼 Wallets', 'action_wallets'),
+        Markup.button.callback('📋 Contracts', 'action_contracts')
       ],
       [
-        Markup.button.callback('🚀 Launches', 'action_launches'),
-        Markup.button.callback('💼 My Wallets', 'action_wallets')
-      ],
-      [
-        Markup.button.callback('📋 Contracts', 'action_contracts'),
-        Markup.button.callback('⚙️ Settings', 'action_settings')
-      ],
-      [
-        Markup.button.callback('📊 Network Status', 'action_network')
+        Markup.button.callback('⚙️ Settings', 'action_settings'),
+        Markup.button.callback('📊 Network', 'action_network')
       ]
+    ]);
+  }
+
+  // Welcome screen keyboard for new users
+  static getWelcomeKeyboard() {
+    return Markup.inlineKeyboard([
+      [Markup.button.callback('🎯 View My Launches', 'action_launches')],
+      [Markup.button.callback('🚀 Deploy First Token', 'action_deploy')],
+      [
+        Markup.button.callback('💼 Wallets', 'action_wallets'),
+        Markup.button.callback('📋 Contracts', 'action_contracts')
+      ],
+      [
+        Markup.button.callback('⚙️ Settings', 'action_settings'),
+        Markup.button.callback('📊 Network', 'action_network')
+      ],
+      [Markup.button.callback('ℹ️ Learn More', 'action_help')]
     ]);
   }
 
@@ -29,8 +41,6 @@ export class GeneralKeyboards {
       [Markup.button.callback('🔙 Back to Home', 'action_home')]
     ]);
   }
-
-
 
   // Confirmation keyboard
   static getConfirmationKeyboard() {

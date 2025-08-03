@@ -624,47 +624,110 @@ export type Database = {
             foreignKeyName: "positions_launch_id_fkey"
             columns: ["launch_id"]
             isOneToOne: false
-            referencedRelation: "bundle_launches"
+            referencedRelation: "token_launches"
             referencedColumns: ["id"]
           },
         ]
       }
       token_launches: {
         Row: {
-          amount_eth: string
-          amount_token: string
+          amount_eth: string | null
+          amount_token: string | null
+          bundle_hash: string | null
+          bundle_timeout: number | null
+          bundle_token_percent: number | null
+          bundle_token_percent_per_wallet: number | null
+          bundle_wallet_count: number | null
           created_at: string
+          dev_wallet_address: string
+          error_message: string | null
+          funding_wallet_address: string
           id: string
+          launch_type: string
+          liquidity_eth_amount: string | null
+          liquidity_token_percent: number | null
+          max_fee_per_gas: string | null
+          max_gas_price: string | null
+          max_priority_fee_per_gas: string | null
           network: string
-          pair_address: string
+          pair_address: string | null
           short_id: string
+          status: string
+          target_block: number | null
           token_address: string
+          token_name: string
+          token_total_supply: string
+          total_cost: string | null
+          transaction_hashes: string[] | null
           transaction_id: string | null
-          wallet_address: string
+          updated_at: string
+          user_id: string
         }
         Insert: {
-          amount_eth: string
-          amount_token: string
+          amount_eth?: string | null
+          amount_token?: string | null
+          bundle_hash?: string | null
+          bundle_timeout?: number | null
+          bundle_token_percent?: number | null
+          bundle_token_percent_per_wallet?: number | null
+          bundle_wallet_count?: number | null
           created_at?: string
+          dev_wallet_address: string
+          error_message?: string | null
+          funding_wallet_address: string
           id?: string
+          launch_type?: string
+          liquidity_eth_amount?: string | null
+          liquidity_token_percent?: number | null
+          max_fee_per_gas?: string | null
+          max_gas_price?: string | null
+          max_priority_fee_per_gas?: string | null
           network: string
-          pair_address: string
+          pair_address?: string | null
           short_id: string
+          status?: string
+          target_block?: number | null
           token_address: string
+          token_name: string
+          token_total_supply: string
+          total_cost?: string | null
+          transaction_hashes?: string[] | null
           transaction_id?: string | null
-          wallet_address: string
+          updated_at?: string
+          user_id: string
         }
         Update: {
-          amount_eth?: string
-          amount_token?: string
+          amount_eth?: string | null
+          amount_token?: string | null
+          bundle_hash?: string | null
+          bundle_timeout?: number | null
+          bundle_token_percent?: number | null
+          bundle_token_percent_per_wallet?: number | null
+          bundle_wallet_count?: number | null
           created_at?: string
+          dev_wallet_address?: string
+          error_message?: string | null
+          funding_wallet_address?: string
           id?: string
+          launch_type?: string
+          liquidity_eth_amount?: string | null
+          liquidity_token_percent?: number | null
+          max_fee_per_gas?: string | null
+          max_gas_price?: string | null
+          max_priority_fee_per_gas?: string | null
           network?: string
-          pair_address?: string
+          pair_address?: string | null
           short_id?: string
+          status?: string
+          target_block?: number | null
           token_address?: string
+          token_name?: string
+          token_total_supply?: string
+          total_cost?: string | null
+          transaction_hashes?: string[] | null
           transaction_id?: string | null
-          wallet_address?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: [
           {

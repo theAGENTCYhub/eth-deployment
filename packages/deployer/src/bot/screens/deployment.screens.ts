@@ -80,6 +80,32 @@ Your contract source code has been sent as a file above. You can download and us
         };
     }
 
+    static getDeploymentSuccessWithLaunchScreen(deploymentResult: any, hasLaunch: boolean): ScreenContent {
+        const contractName = deploymentResult.contractName || 'Token';
+        const contractAddress = deploymentResult.contractAddress;
+        const shortAddress = `${contractAddress.slice(0, 6)}...${contractAddress.slice(-4)}`;
+
+        return {
+            title: "🎉 Token Deployed Successfully!",
+            description: `
+*Your token is ready!*
+
+🏷️ **Token:** ${contractName}
+📍 **Address:** \`${shortAddress}\`
+⛽ **Gas Used:** ${deploymentResult.gasUsed}
+💰 **Cost:** ${deploymentResult.deploymentCost} ETH
+📊 **Supply:** ${deploymentResult.totalSupply || 'Custom'} tokens
+
+${hasLaunch ? 
+  `✅ **Launch record created automatically**\n\n⚠️ **Important:** Your token is deployed but not yet tradeable. You need to create a launch to enable trading.\n\n**Next Steps:**\n• Create liquidity pool on Uniswap\n• Add initial liquidity (ETH + Tokens)\n• Open trading for public access` :
+  `⚠️ **Note:** Token deployed but launch record creation failed. You can still manage this token manually.`
+}
+
+*What would you like to do next?*`,
+            footer: hasLaunch ? "Ready to launch your token?" : "Choose your next action"
+        };
+    }
+
     static getDeploymentErrorScreen(errorMessage: string): ScreenContent {
         // Wrap error message in triple backticks to avoid Telegram Markdown parse errors
         const safeError = `\`\`\`\n${errorMessage}\`\`\``;

@@ -8,6 +8,20 @@ import { EventParser } from '@eth-deployer/transactions/src/utils/event-parser';
 
 export class TradingHandler {
   /**
+   * Show buy screen for a launch
+   */
+  static async showBuyScreen(ctx: BotContext, launchId: string) {
+    try {
+      // TODO: Implement buy screen
+      await ctx.answerCbQuery('🚧 Buy screen coming soon!');
+      await ctx.reply('🚧 Buy functionality is under development.');
+    } catch (error) {
+      console.error('Error showing buy screen:', error);
+      await ctx.answerCbQuery('❌ Failed to show buy screen');
+    }
+  }
+
+  /**
    * Execute a trade with real trading service
    */
   static async executeTrade(ctx: BotContext, launchId: string, walletId: string, mode: 'buy' | 'sell', amount: string) {

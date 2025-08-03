@@ -87,6 +87,13 @@ export interface SessionData {
   };
   // --- Launches management ---
   launchesPage?: number;
+  launchesState?: {
+    currentPage: number;
+    totalPages: number;
+    launches: any[];
+  };
+  launchState?: any;
+  launchDetails?: any;
   currentLaunchId?: string;
   positionsPage?: number;
   currentPositionId?: string;

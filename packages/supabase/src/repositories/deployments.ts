@@ -75,6 +75,34 @@ export class DeploymentsRepository {
     }
   }
 
+  async getByContractAddress(contractAddress: string): Promise<{ success: boolean; data?: Deployment; error?: string }> {
+    try {
+      const { data: deployment, error } = await supabase
+        .from('deployments')
+        .select('*')
+        .eq('contract_address', contractAddress)
+        .single();
+      if (error) return { success: false, error: error.message };
+      return { success: true, data: deployment };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
+  async getByUserId(userId: string): Promise<{ success: boolean; data?: Deployment[]; error?: string }> {
+    try {
+      const { data: deployments, error } = await supabase
+        .from('deployments')
+        .select('*')
+        .eq('user_id', userId)
+        .order('deployed_at', { ascending: false });
+      if (error) return { success: false, error: error.message };
+      return { success: true, data: deployments };
+    } catch (error) {
+      return { success: false, error: error instanceof Error ? error.message : 'Unknown error' };
+    }
+  }
+
   async update(id: string, data: UpdateDeployment): Promise<{ success: boolean; data?: Deployment; error?: string }> {
     try {
       const { data: deployment, error } = await supabase

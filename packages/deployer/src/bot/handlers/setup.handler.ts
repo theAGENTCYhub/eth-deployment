@@ -41,6 +41,118 @@ Current network: ${process.env.NETWORK || 'Local'}
     bot.action('action_back', NavigationHandler.goBack);
     bot.action('action_go_home', NavigationHandler.goHome);
 
+    // Management action handlers
+    bot.action('action_wallets', async (ctx) => {
+      const { WalletHandlers } = await import('./wallet.handler');
+      await WalletHandlers.showWalletMain(ctx);
+    });
+
+    bot.action('action_contracts', async (ctx) => {
+      const { ContractsHandler } = await import('./contracts.handler');
+      await ContractsHandler.showContractsMain(ctx);
+    });
+
+    bot.action('action_settings', async (ctx) => {
+      const { SettingsHandler } = await import('./settings/settings.handler');
+      await SettingsHandler.showSettings(ctx);
+    });
+
+    bot.action('action_network', async (ctx) => {
+      await BotHandlers.showNetworkStatus(ctx);
+    });
+
+    bot.action('action_help', async (ctx) => {
+      await BotHandlers.showComingSoon(ctx, 'Help Documentation');
+    });
+
+    // Settings action handlers
+    bot.action('settings_deployment_configs', async (ctx) => {
+      const { DeploymentConfigsHandler } = await import('./settings/deployment-configs.handler');
+      await DeploymentConfigsHandler.listConfigs(ctx);
+    });
+
+    bot.action('settings_liquidity_configs', async (ctx) => {
+      const { LiquidityConfigsHandler } = await import('./settings/liquidity-configs.handler');
+      await LiquidityConfigsHandler.listConfigs(ctx);
+    });
+
+    bot.action('settings_bundle_configs', async (ctx) => {
+      const { BundleConfigsHandler } = await import('./settings/bundle-configs.handler');
+      await BundleConfigsHandler.listConfigs(ctx);
+    });
+
+    // Unified launches system handlers
+    bot.action('action_launches', async (ctx) => {
+      const { LaunchesListHandler } = await import('./launches/launches-list.handler');
+      await LaunchesListHandler.showLaunchesList(ctx);
+    });
+
+    // Launch management handlers
+    bot.action(/^launch_detail_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const { LaunchManagementHandler } = await import('./launches/launch-management.handler');
+      await LaunchManagementHandler.showLaunchDetail(ctx, launchId);
+    });
+
+    // Launch action handlers
+    bot.action(/^launch_create_liquidity_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const { LaunchManagementHandler } = await import('./launches/launch-management.handler');
+      await LaunchManagementHandler.handleCreateLiquidity(ctx, launchId);
+    });
+
+    bot.action(/^launch_manage_liquidity_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const { LaunchManagementHandler } = await import('./launches/launch-management.handler');
+      await LaunchManagementHandler.handleManageLiquidity(ctx, launchId);
+    });
+
+    bot.action(/^launch_trading_controls_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const { LaunchManagementHandler } = await import('./launches/launch-management.handler');
+      await LaunchManagementHandler.handleTradingControls(ctx, launchId);
+    });
+
+    bot.action(/^launch_contract_settings_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const { LaunchManagementHandler } = await import('./launches/launch-management.handler');
+      await LaunchManagementHandler.handleContractSettings(ctx, launchId);
+    });
+
+    bot.action(/^launch_analytics_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      const { LaunchManagementHandler } = await import('./launches/launch-management.handler');
+      await LaunchManagementHandler.handleAnalytics(ctx, launchId);
+    });
+
+    // Launches pagination handlers
+    bot.action(/^launches_page_(\d+)$/, async (ctx) => {
+      const page = parseInt(ctx.match[1]);
+      const { LaunchesListHandler } = await import('./launches/launches-list.handler');
+      await LaunchesListHandler.handleLaunchesPagination(ctx, page);
+    });
+
+    // Navigation callbacks that lead to existing screens
+    bot.action(/^launch_positions_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      // Route to existing positions handler
+      const { PositionsHandler } = await import('./launches/positions.handler');
+      await PositionsHandler.showPositionsList(ctx, launchId);
+    });
+
+    bot.action(/^launch_buy_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      // Route to existing trading handler
+      const { TradingHandler } = await import('./launches/trading.handler');
+      await TradingHandler.showBuyScreen(ctx, launchId);
+    });
+
+    bot.action(/^launch_bundle_(.+)$/, async (ctx) => {
+      const launchId = ctx.match[1];
+      // TODO: Route to bundle launch handler (future implementation)
+      await ctx.answerCbQuery('🚧 Bundle launch coming soon!');
+    });
+
     // Deploy flow handlers
     bot.action('deploy_template', BotHandlers.showTemplateSelection);
 
@@ -118,7 +230,7 @@ Current network: ${process.env.NETWORK || 'Local'}
         case 'contracts_page':
           await ContractsHandler.showDeployedContracts(ctx, data.page);
           break;
-        // Launch actions
+        // Legacy launch actions (for backward compatibility)
         case 'launch_detail':
           const { LaunchesHandler } = await import('./launches/launches.handler');
           await LaunchesHandler.showLaunchDetail(ctx, data.launchId);
@@ -552,6 +664,18 @@ Current network: ${process.env.NETWORK || 'Local'}
         default:
           await ctx.answerCbQuery('❌ Unknown action.');
       }
+    });
+
+    // Wallet selection short callbacks
+    bot.action(/^w[a-zA-Z0-9]+$/, async (ctx) => {
+      if (!ctx.callbackQuery || !('data' in ctx.callbackQuery)) return;
+      const shortId = ctx.callbackQuery.data as string;
+      const resolvedCallback = CallbackManager.resolveWalletCallback(shortId);
+      if (!resolvedCallback || resolvedCallback.action !== 'select_dev_wallet') {
+        await ctx.answerCbQuery('❌ Invalid wallet selection.');
+        return;
+      }
+      await DeploymentHandler.handleDeveloperWalletSelected(ctx, resolvedCallback.data.walletId);
     });
     // Handle finish editing
     bot.action('deploy_review', async (ctx) => {

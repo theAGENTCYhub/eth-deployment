@@ -1,6 +1,6 @@
--- Add launch_id field to positions table for bundle launch positions
+-- Add launch_id field to positions table for unified launch positions
 ALTER TABLE positions 
-ADD COLUMN IF NOT EXISTS launch_id UUID REFERENCES bundle_launches(id) ON DELETE CASCADE;
+ADD COLUMN IF NOT EXISTS launch_id UUID REFERENCES token_launches(id) ON DELETE CASCADE;
 
 -- Add status field to positions table
 ALTER TABLE positions 

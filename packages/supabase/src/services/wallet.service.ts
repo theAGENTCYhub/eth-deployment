@@ -53,6 +53,10 @@ export class WalletService {
     return this.repo.getAll();
   }
 
+  async getWalletById(id: string) {
+    return this.repo.getById(id);
+  }
+
   async deleteWallet(id: string) {
     return this.repo.delete(id);
   }

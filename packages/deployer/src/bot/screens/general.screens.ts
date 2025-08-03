@@ -2,27 +2,58 @@ import { ScreenContent } from './types';
 import { web3Provider } from '../../web3/provider';
 
 export class GeneralScreens {
-    static getHomeScreen(): ScreenContent {
+    static getHomeScreen(userName?: string): ScreenContent {
         const networkStatus = web3Provider.getNetworkStatus();
         const isTestnet = web3Provider.isTestnet();
         const testnetWarning = isTestnet ? "\n⚠️ *Running on testnet - Safe for testing*" : "\n🔴 *MAINNET MODE - USE WITH CAUTION*";
 
         return {
-            title: "🚀 Welcome to ETH Token Deployer",
+            title: "🏠 ETH Token Deployer",
             description: `
-Your one-stop solution for deploying ERC20 tokens on Ethereum!
+*Welcome back${userName ? `, ${userName}` : ''}! Ready to deploy and launch tokens?*
+
+Your one-stop solution for ERC20 token deployment and launch management.
 
 ${networkStatus}${testnetWarning}
 
-*What you can do:*
-• Deploy custom ERC20 tokens
-• Launch bundle distributions
-• Manage contract templates
-• Configure multi-wallet distributions
-• Create liquidity pools
+**Quick Actions:**
+• 🎯 View and manage all your launches
+• 🚀 Deploy new ERC20 tokens with custom parameters
+• 💼 Manage your wallets and private keys
+• 📋 View deployed contracts and templates
+• ⚙️ Configure deployment and launch settings
+• 📊 Check network status and balances
 
-Ready to launch your next token?`,
-            footer: "Select an option below to get started 👇"
+*Choose an action below to get started:*`,
+            footer: "Select an action to continue"
+        };
+    }
+
+    static getWelcomeScreen(): ScreenContent {
+        const networkStatus = web3Provider.getNetworkStatus();
+        const isTestnet = web3Provider.isTestnet();
+        const testnetWarning = isTestnet ? "\n⚠️ *Running on testnet - Safe for testing*" : "\n🔴 *MAINNET MODE - USE WITH CAUTION*";
+
+        return {
+            title: "🏠 ETH Token Deployer",
+            description: `
+*Welcome to ETH Token Deployer!*
+
+Deploy, launch, and manage ERC20 tokens with ease.
+
+${networkStatus}${testnetWarning}
+
+**Features:**
+• 🚀 Deploy custom ERC20 tokens
+• 💧 Create liquidity pools
+• 📊 Manage launches and positions
+• 💰 Execute trades across multiple wallets
+• 💼 Secure wallet management
+• 📋 Contract template library
+• ⚙️ Advanced configuration options
+
+*Ready to get started?*`,
+            footer: "Choose your first action"
         };
     }
 
